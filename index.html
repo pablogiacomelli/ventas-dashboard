@@ -3,26 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAHRA · Dashboard Ventas</title>
+<title>MAHRA · Ventas Generales</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #111118;
-    --surface2: #1a1a24;
-    --border: #ffffff0f;
-    --border2: #ffffff18;
-    --text: #f0f0f5;
-    --muted: #7070a0;
-    --accent: #e8c547;
-    --accent2: #5b8dee;
-    --accent3: #e85b8d;
-    --accent4: #5be8b4;
-    --local1: #5b8dee;
-    --local2: #e85b8d;
-    --tienda: #e8c547;
-    --font-display: 'Syne', sans-serif;
+    --bg: #0f0f0d;
+    --surface: #171714;
+    --surface2: #1e1e1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0ede8;
+    --muted: #9a9690;
+    --muted2: #5a5750;
+    --accent: #d4a853;
+    --accent2: #7ba8cc;
+    --accent3: #e07060;
+    --accent4: #8fbe9e;
+    --local1: #7ba8cc;
+    --local2: #e07060;
+    --tienda: #d4a853;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
     --font-mono: 'DM Mono', monospace;
   }
 
@@ -31,7 +34,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -61,18 +64,24 @@
 
   .logo {
     font-family: var(--font-display);
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .logo em {
     color: var(--accent);
-    text-transform: uppercase;
+    font-style: italic;
+    font-weight: 300;
   }
 
   .logo-sub {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--muted2);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
   }
 
   .header-right {
@@ -88,7 +97,8 @@
     gap: 6px;
     font-size: 11px;
     color: var(--muted);
-    letter-spacing: 0.1em;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
   }
 
   .status-dot {
@@ -156,16 +166,22 @@
     border: 1px solid var(--border2);
     color: var(--muted);
     font-family: var(--font-mono);
-    font-size: 10px;
-    padding: 5px 10px;
+    font-size: 11px;
+    padding: 5px 12px;
     cursor: pointer;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
+    border-radius: 3px;
     transition: all 0.15s;
   }
   .preset-btn:hover, .preset-btn.active {
     border-color: var(--accent);
     color: var(--accent);
-    background: #e8c54710;
+    background: transparent;
+  }
+  .preset-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 500;
   }
 
   .btn-load {
@@ -232,24 +248,25 @@
   }
 
   .sc-label {
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--muted2);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
     margin-bottom: 8px;
   }
 
   .sc-value {
     font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 26px;
+    font-weight: 300;
     color: var(--text);
     line-height: 1;
   }
 
   .sc-sub {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
+    font-family: var(--font-mono);
     margin-top: 6px;
   }
 
@@ -280,18 +297,18 @@
 
   .chart-title {
     font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 15px;
+    font-weight: 300;
+    letter-spacing: -0.01em;
     color: var(--text);
   }
 
   .chart-subtitle {
-    font-size: 10px;
-    color: var(--muted);
+    font-size: 11px;
+    color: var(--muted2);
     margin-top: 3px;
-    letter-spacing: 0.1em;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
   }
 
   .legend {
@@ -557,8 +574,8 @@
 
 <header>
   <div class="logo-block">
-    <div class="logo">MAHRA</div>
-    <div class="logo-sub">Dashboard · Ventas Consolidadas</div>
+    <div class="logo">MAHRA <em>Ventas Generales</em></div>
+    <div class="logo-sub">VENTAS CONSOLIDADAS · ÚLTIMAS ACTUALIZACIONES</div>
   </div>
   <div class="header-right">
     <div class="status-pill" id="statusPill">
@@ -767,7 +784,7 @@
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-const CLIENT_ID = 'TU_CLIENT_ID.apps.googleusercontent.com'; // Reemplazar
+const CLIENT_ID = '715960249985-okjpi027cnlgkqc8ik7oqr02phbe2u19.apps.googleusercontent.com';
 const SHEET_VENTAS = '1Cj0MU2d9cPVGu70l0EPC-f7RCy0JOYP9Iwm7_pJXKu8';
 const SHEET_BI     = '1lWXyerXGV5M4hebGXCV2aAyEg6ghFDOjDvTd3GPkKEw';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
