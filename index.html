@@ -642,18 +642,24 @@
     </div>
   </div>
 
-  <!-- Gráfico 1: Ventas por Canal (líneas) -->
+  <!-- Gráfico 1: Ventas por Canal (barras apiladas) -->
   <div class="charts-grid">
     <div class="chart-card chart-full">
       <div class="chart-header">
         <div>
           <div class="chart-title">Ventas por Canal</div>
-          <div class="chart-subtitle">Evolución diaria de ventas totales · ARS</div>
+          <div class="chart-subtitle" id="canalSubtitle">Agrupado semanal · ARS</div>
         </div>
-        <div class="legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--local1)"></div>Local 1</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--local2)"></div>Local 2</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--tienda)"></div>Tienda Online</div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--local1)"></div>Local 1 (fact.)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--local2)"></div>Local 2 (s/fact.)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--tienda)"></div>Tienda Online</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="preset-btn active" id="btnSemana" onclick="setCanalAgrup('semana')">Semana</button>
+            <button class="preset-btn" id="btnMes" onclick="setCanalAgrup('mes')">Mes</button>
+          </div>
         </div>
       </div>
       <div class="chart-wrap-tall"><canvas id="canalChart"></canvas></div>
@@ -1008,78 +1014,82 @@ function renderScorecards(ventas, bi) {
 }
 
 // ─── CANAL CHART ─────────────────────────────────────────────────────────────
+let canalAgrup = 'semana';
+let lastVentasCanal = [];
+
+function setCanalAgrup(agrup) {
+  canalAgrup = agrup;
+  document.getElementById('btnSemana').classList.toggle('active', agrup === 'semana');
+  document.getElementById('btnMes').classList.toggle('active', agrup === 'mes');
+  document.getElementById('canalSubtitle').textContent = agrup === 'semana' ? 'Agrupado semanal · ARS' : 'Agrupado mensual · ARS';
+  if (lastVentasCanal.length) renderCanalChart(lastVentasCanal);
+}
+
 function renderCanalChart(ventas) {
-  // Agrupar por fecha y canal
-  const byDateCanal = {};
+  lastVentasCanal = ventas;
+  const c1 = '#7ba8cc', c2 = '#e07060', ct = '#d4a853';
+
+  // Agrupar por período y canal
+  const byPeriod = {};
   ventas.forEach(r => {
-    const d = r.fecha || '';
-    const c = r.fuente || 'Otro';
-    if (!byDateCanal[d]) byDateCanal[d] = {};
-    byDateCanal[d][c] = (byDateCanal[d][c] || 0) + parseNum(r.total);
+    const d = parseDate(r.fecha);
+    if (!d) return;
+    let key;
+    if (canalAgrup === 'mes') {
+      key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    } else {
+      key = getWeekKey(d);
+    }
+    if (!byPeriod[key]) byPeriod[key] = { 'Local 1': 0, 'Local 2': 0, 'Tienda Online': 0 };
+    const canal = r.fuente || 'Otro';
+    if (byPeriod[key][canal] !== undefined) byPeriod[key][canal] += parseNum(r.total);
   });
 
-  const dates = Object.keys(byDateCanal).sort();
-  const canales = ['Local 1', 'Local 2', 'Tienda Online'];
-  const colors = [getComputedStyle(document.documentElement).getPropertyValue('--local1').trim(),
-                  getComputedStyle(document.documentElement).getPropertyValue('--local2').trim(),
-                  getComputedStyle(document.documentElement).getPropertyValue('--tienda').trim()];
-
-  // Si hay muchas fechas, agrupar por semana
-  let labels = dates;
-  let datasets;
-
-  if (dates.length > 60) {
-    // agrupar por semana
-    const byWeekCanal = {};
-    dates.forEach(d => {
-      const dt = new Date(d);
-      const wk = getWeekKey(dt);
-      if (!byWeekCanal[wk]) byWeekCanal[wk] = {};
-      canales.forEach(c => {
-        byWeekCanal[wk][c] = (byWeekCanal[wk][c] || 0) + (byDateCanal[d][c] || 0);
-      });
-    });
-    labels = Object.keys(byWeekCanal).sort();
-    datasets = canales.map((c, i) => ({
-      label: c,
-      data: labels.map(wk => byWeekCanal[wk][c] || 0),
-      borderColor: colors[i],
-      backgroundColor: colors[i] + '18',
-      tension: 0.4, fill: false, pointRadius: 2, borderWidth: 2
-    }));
-  } else {
-    datasets = canales.map((c, i) => ({
-      label: c,
-      data: labels.map(d => byDateCanal[d][c] || 0),
-      borderColor: colors[i],
-      backgroundColor: colors[i] + '18',
-      tension: 0.4, fill: false, pointRadius: 2, borderWidth: 2
-    }));
-  }
+  const periods = Object.keys(byPeriod).sort();
+  const labels = periods.map(p => {
+    if (canalAgrup === 'mes') {
+      const [y, m] = p.split('-');
+      return new Date(+y, +m-1, 1).toLocaleString('es-AR', { month: 'short', year: '2-digit' });
+    }
+    const d = new Date(p);
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  });
 
   if (charts.canal) charts.canal.destroy();
   charts.canal = new Chart(document.getElementById('canalChart'), {
-    type: 'line',
-    data: { labels, datasets },
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: c1 + 'cc', borderColor: c1, borderWidth: 1, stack: 'local' },
+        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: c2 + 'cc', borderColor: c2, borderWidth: 1, stack: 'local' },
+        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: ct + 'cc', borderColor: ct, borderWidth: 1, stack: 'tienda' }
+      ]
+    },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a1a24',
-          borderColor: '#ffffff18',
+          backgroundColor: '#171714',
+          borderColor: 'rgba(255,255,255,0.12)',
           borderWidth: 1,
-          titleColor: '#f0f0f5',
-          bodyColor: '#7070a0',
+          titleColor: '#f0ede8',
+          bodyColor: '#9a9690',
           callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`
+            label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`,
+            footer: items => {
+              const local = items.filter(i => i.dataset.stack === 'local').reduce((s,i) => s+i.parsed.y, 0);
+              const tienda = items.filter(i => i.dataset.stack === 'tienda').reduce((s,i) => s+i.parsed.y, 0);
+              return `Local físico total: ${fmtARSFull(local)}`;
+            }
           }
         }
       },
       scales: {
-        x: { grid: { color: '#ffffff08' }, ticks: { color: '#7070a0', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 10 } },
-        y: { grid: { color: '#ffffff08' }, ticks: { color: '#7070a0', font: { family: 'DM Mono', size: 10 }, callback: v => fmtARS(v) } }
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 16 } },
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, stacked: false, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, callback: v => fmtARS(v) } }
       }
     }
   });
@@ -1322,7 +1332,9 @@ async function runAI() {
   const totalVentas = ventas.reduce((s,r) => s+parseNum(r.total), 0);
   const byCanal = {}, byMarca = {}, byPago = {};
   ventas.forEach(r => {
-    const c = r.fuente||''; byCanal[c] = (byCanal[c]||0)+parseNum(r.total);
+    // Agrupar Local 1 y Local 2 como "Local Físico"
+    const c = (r.fuente === 'Local 1' || r.fuente === 'Local 2') ? 'Local Físico' : (r.fuente||'');
+    byCanal[c] = (byCanal[c]||0)+parseNum(r.total);
     const m = r.marca||''; byMarca[m] = (byMarca[m]||0)+parseNum(r.total);
     const p = r.forma_de_pago||''; byPago[p] = (byPago[p]||0)+parseNum(r.total);
   });
