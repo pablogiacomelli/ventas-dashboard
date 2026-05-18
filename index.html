@@ -616,9 +616,9 @@
       <div class="sc-sub" id="scTotalSub">en el período</div>
     </div>
     <div class="scorecard">
-      <div class="sc-label">Transacciones</div>
+      <div class="sc-label">Cantidad</div>
       <div class="sc-value" id="scTx">—</div>
-      <div class="sc-sub" id="scTxSub">líneas de venta</div>
+      <div class="sc-sub" id="scTxSub">unidades vendidas</div>
     </div>
     <div class="scorecard">
       <div class="sc-label">Ticket Promedio</div>
@@ -1004,7 +1004,8 @@ function renderScorecards(ventas, bi) {
   const dias = new Set(ventas.map(r => r.fecha)).size;
 
   document.getElementById('scTotal').textContent = fmtARS(totalVentas);
-  document.getElementById('scTx').textContent = txCount.toLocaleString('es-AR');
+  const totalQty = ventas.reduce((s,r) => s + parseNum(r.cantidad), 0);
+  document.getElementById('scTx').textContent = Math.round(totalQty).toLocaleString('es-AR');
   document.getElementById('scTicket').textContent = fmtARS(ticket);
   document.getElementById('scCanal').textContent = bestCanal.replace('Local 1','L1').replace('Local 2','L2').replace('Tienda Online','Tienda');
   document.getElementById('scCanalSub').textContent = fmtARS(bestCanalVal);
@@ -1029,7 +1030,7 @@ function renderCanalChart(ventas) {
   lastVentasCanal = ventas;
   const c1 = '#7ba8cc', c2 = '#e07060', ct = '#d4a853';
 
-  // Agrupar por período y canal
+  // Agrupar por período — Local Físico = L1 + L2, Tienda separada
   const byPeriod = {};
   ventas.forEach(r => {
     const d = parseDate(r.fecha);
@@ -1040,9 +1041,12 @@ function renderCanalChart(ventas) {
     } else {
       key = getWeekKey(d);
     }
-    if (!byPeriod[key]) byPeriod[key] = { 'Local 1': 0, 'Local 2': 0, 'Tienda Online': 0 };
+    if (!byPeriod[key]) byPeriod[key] = { 'Local 1': 0, 'Local 2': 0, 'Local Físico': 0, 'Tienda Online': 0 };
     const canal = r.fuente || 'Otro';
-    if (byPeriod[key][canal] !== undefined) byPeriod[key][canal] += parseNum(r.total);
+    const val = parseNum(r.total);
+    if (canal === 'Local 1') { byPeriod[key]['Local 1'] += val; byPeriod[key]['Local Físico'] += val; }
+    else if (canal === 'Local 2') { byPeriod[key]['Local 2'] += val; byPeriod[key]['Local Físico'] += val; }
+    else if (canal === 'Tienda Online') byPeriod[key]['Tienda Online'] += val;
   });
 
   const periods = Object.keys(byPeriod).sort();
@@ -1061,9 +1065,9 @@ function renderCanalChart(ventas) {
     data: {
       labels,
       datasets: [
-        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: '#7ba8cccc', borderColor: '#7ba8cc', borderWidth: 1 },
-        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: '#e07060cc', borderColor: '#e07060', borderWidth: 1 },
-        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: '#d4a853cc', borderColor: '#d4a853', borderWidth: 1 }
+        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: '#7ba8ccdd', borderColor: '#7ba8cc', borderWidth: 1, stack: 'local' },
+        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: '#e07060dd', borderColor: '#e07060', borderWidth: 1, stack: 'local' },
+        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: '#d4a853dd', borderColor: '#d4a853', borderWidth: 1, stack: 'tienda' }
       ]
     },
     options: {
@@ -1080,7 +1084,7 @@ function renderCanalChart(ventas) {
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`,
             footer: items => {
-              const local = items.slice(0,2).reduce((s,i) => s+i.parsed.y, 0);
+              const local = (byPeriod[periods[items[0].dataIndex]]?.['Local Físico']) || 0;
               return `Local físico total: ${fmtARSFull(local)}`;
             }
           }
