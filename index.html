@@ -1061,9 +1061,9 @@ function renderCanalChart(ventas) {
     data: {
       labels,
       datasets: [
-        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: c1 + 'cc', borderColor: c1, borderWidth: 1, stack: 'local' },
-        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: c2 + 'cc', borderColor: c2, borderWidth: 1, stack: 'local' },
-        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: ct + 'cc', borderColor: ct, borderWidth: 1, stack: 'tienda' }
+        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: '#7ba8cccc', borderColor: '#7ba8cc', borderWidth: 1 },
+        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: '#e07060cc', borderColor: '#e07060', borderWidth: 1 },
+        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: '#d4a853cc', borderColor: '#d4a853', borderWidth: 1 }
       ]
     },
     options: {
@@ -1080,8 +1080,7 @@ function renderCanalChart(ventas) {
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`,
             footer: items => {
-              const local = items.filter(i => i.dataset.stack === 'local').reduce((s,i) => s+i.parsed.y, 0);
-              const tienda = items.filter(i => i.dataset.stack === 'tienda').reduce((s,i) => s+i.parsed.y, 0);
+              const local = items.slice(0,2).reduce((s,i) => s+i.parsed.y, 0);
               return `Local físico total: ${fmtARSFull(local)}`;
             }
           }
@@ -1089,7 +1088,7 @@ function renderCanalChart(ventas) {
       },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 16 } },
-        y: { grid: { color: 'rgba(255,255,255,0.03)' }, stacked: false, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, callback: v => fmtARS(v) } }
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, callback: v => fmtARS(v) } }
       }
     }
   });
