@@ -589,7 +589,7 @@
 <div class="controls-bar">
   <span class="range-label">Período</span>
   <input type="date" class="date-input" id="dateFrom">
-  <span style="color:var(--muted);font-size:12px">→</span>
+  <span style="color:var(--muted2);font-size:12px">→</span>
   <input type="date" class="date-input" id="dateTo">
   <div class="preset-btns">
     <button class="preset-btn" onclick="setPreset(7)">7D</button>
@@ -598,6 +598,10 @@
     <button class="preset-btn" onclick="setPreset(180)">6M</button>
     <button class="preset-btn" onclick="setPreset(365)">1A</button>
   </div>
+  <span class="range-label" style="margin-left:12px">Temporada</span>
+  <select class="date-input" id="selectTemporada" style="min-width:120px">
+    <option value="">Todas</option>
+  </select>
   <button class="btn-load" onclick="loadAllData()">↻ Cargar datos</button>
 </div>
 
@@ -901,10 +905,11 @@ async function loadAllData() {
   showLoading('Leyendo Ventas Consolidadas...');
   hideError();
   try {
-    rawVentas = await fetchSheet(SHEET_VENTAS, 'Hoja 1!A:M');
+    rawVentas = await fetchSheet(SHEET_VENTAS, 'Hoja 1!A:O');
     setLoading('Leyendo BI Ventas con Costos...');
     rawBI = await fetchSheet(SHEET_BI, 'Hoja 1!A:R');
     setLoading('Procesando...');
+    populateTemporadas();
     renderAll();
     document.getElementById('lastUpdate').textContent = 'Actualizado ' + new Date().toLocaleString('es-AR');
   } catch(e) {
@@ -922,6 +927,29 @@ function getDateRange() {
   };
 }
 
+function getTemporada() {
+  return document.getElementById('selectTemporada').value;
+}
+
+function populateTemporadas() {
+  const temps = [...new Set(rawVentas.map(r => r.temporada).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('selectTemporada');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' + temps.map(t => `<option value="${t}">${t}</option>`).join('');
+  if (current) sel.value = current;
+}
+
+function filterVentas(rows) {
+  const { from, to } = getDateRange();
+  const temp = getTemporada();
+  return rows.filter(r => {
+    const d = parseDate(r['fecha']);
+    if (!d || d < from || d > to) return false;
+    if (temp && r.temporada !== temp) return false;
+    return true;
+  });
+}
+
 function filterByDate(rows, dateField) {
   const { from, to } = getDateRange();
   return rows.filter(r => {
@@ -932,7 +960,7 @@ function filterByDate(rows, dateField) {
 
 // ─── RENDER ALL ───────────────────────────────────────────────────────────────
 function renderAll() {
-  const ventas = filterByDate(rawVentas, 'fecha');
+  const ventas = filterVentas(rawVentas);
   const bi     = filterByDate(rawBI, 'fecha');
 
   renderScorecards(ventas, bi);
@@ -1285,18 +1313,15 @@ async function runAI() {
   btn.disabled = true;
   document.getElementById('aiSummary').textContent = 'Generando análisis...';
 
-  // Últimos 30 días
-  const to = new Date();
-  const from = new Date();
-  from.setDate(to.getDate() - 30);
-  const v30 = rawVentas.filter(r => {
-    const d = parseDate(r.fecha);
-    return d && d >= from && d <= to;
-  });
+  // Usar el rango seleccionado
+  const ventas = filterVentas(rawVentas);
+  const { from, to } = getDateRange();
+  const temp = getTemporada();
+  const rango = from.toLocaleDateString('es-AR') + ' al ' + to.toLocaleDateString('es-AR') + (temp ? ' · Temporada ' + temp : '');
 
-  const totalVentas = v30.reduce((s,r) => s+parseNum(r.total), 0);
+  const totalVentas = ventas.reduce((s,r) => s+parseNum(r.total), 0);
   const byCanal = {}, byMarca = {}, byPago = {};
-  v30.forEach(r => {
+  ventas.forEach(r => {
     const c = r.fuente||''; byCanal[c] = (byCanal[c]||0)+parseNum(r.total);
     const m = r.marca||''; byMarca[m] = (byMarca[m]||0)+parseNum(r.total);
     const p = r.forma_de_pago||''; byPago[p] = (byPago[p]||0)+parseNum(r.total);
@@ -1306,48 +1331,28 @@ async function runAI() {
   const topCanales = Object.entries(byCanal).sort((a,b)=>b[1]-a[1]);
 
   const resumen = {
-    periodo: '30 días',
+    periodo: rango,
+    temporada: temp || 'todas',
     total_ventas_ars: Math.round(totalVentas),
-    transacciones: v30.length,
-    ticket_promedio: Math.round(v30.length ? totalVentas/v30.length : 0),
+    transacciones: ventas.length,
+    ticket_promedio: Math.round(ventas.length ? totalVentas/ventas.length : 0),
     canales: topCanales.map(([c,v]) => `${c}: $${Math.round(v).toLocaleString('es-AR')}`),
     top_marcas: topMarcas.map(([m,v]) => `${m}: $${Math.round(v).toLocaleString('es-AR')}`),
     formas_de_pago: Object.entries(byPago).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,v]) => `${p}: $${Math.round(v).toLocaleString('es-AR')}`)
   };
 
-  const prompt = `Sos el analista de negocios de MAHRA Calzados, una zapatería argentina con dos locales físicos y tienda online.
-
-Datos de ventas de los últimos 30 días:
-${JSON.stringify(resumen, null, 2)}
-
-Generá:
-1. Un párrafo de análisis ejecutivo (3-4 oraciones, en español rioplatense, directo y accionable).
-2. Exactamente 4 acciones prioritarias en formato JSON array así:
-[
-  { "num": "01", "tag": "URGENTE|OPORTUNIDAD|ATENCIÓN|TENDENCIA", "titulo": "...", "descripcion": "..." },
-  ...
-]
-
-Respondé SOLO con este JSON (sin markdown, sin texto extra):
-{ "resumen": "...", "acciones": [...] }`;
-
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://pgiacomelli2506.app.n8n.cloud/webhook/ventas-ai-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ resumen, rango })
     });
-    const data = await resp.json();
-    const text = data.content?.[0]?.text || '{}';
-    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const parsed = await resp.json();
 
     document.getElementById('aiSummary').textContent = parsed.resumen || 'Sin resumen.';
 
-    const tagClass = { URGENTE: 'urgente', OPORTUNIDAD: 'oportunidad', ATENCIÓN: 'atencion', TENDENCIA: 'tendencia' };
+    const tagClass = { URGENTE: 'urgente', OPORTUNIDAD: 'oportunidad', 'ATENCIÓN': 'atencion', TENDENCIA: 'tendencia' };
     document.getElementById('actionsGrid').innerHTML = (parsed.acciones || []).map(a => `
       <div class="action-card">
         <div class="action-num">${a.num}</div>
