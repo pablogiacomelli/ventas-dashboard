@@ -883,18 +883,19 @@ function parseNum(v) {
 
 function parseDate(v) {
   if (!v) return null;
-  // Strip apóstrofe que agrega Google Sheets a strings que parecen fechas
   const s = String(v).replace(/^[^0-9]+/, '').trim();
   if (!s) return null;
-  // ISO string YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.split('T')[0]);
+  // ISO string YYYY-MM-DD — parsear como local para evitar desfase UTC
+  const mISO = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mISO) return new Date(+mISO[1], +mISO[2]-1, +mISO[3]);
   // Excel serial
   if (/^\d+(\.\d+)?$/.test(s)) {
-    return new Date(Math.round((parseFloat(s) - 25569) * 86400 * 1000));
+    const d = new Date(Math.round((parseFloat(s) - 25569) * 86400 * 1000));
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   }
   // DD/MM/YYYY
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const mDMY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (mDMY) return new Date(+mDMY[3], +mDMY[2]-1, +mDMY[1]);
   return null;
 }
 
@@ -930,9 +931,13 @@ async function loadAllData() {
 
 // ─── FILTER ───────────────────────────────────────────────────────────────────
 function getDateRange() {
+  const fromStr = document.getElementById('dateFrom').value;
+  const toStr   = document.getElementById('dateTo').value;
+  const [fy, fm, fd] = fromStr.split('-').map(Number);
+  const [ty, tm, td] = toStr.split('-').map(Number);
   return {
-    from: new Date(document.getElementById('dateFrom').value),
-    to:   new Date(document.getElementById('dateTo').value + 'T23:59:59')
+    from: new Date(fy, fm-1, fd, 0, 0, 0),
+    to:   new Date(ty, tm-1, td, 23, 59, 59)
   };
 }
 
