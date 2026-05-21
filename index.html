@@ -602,6 +602,12 @@
   <select class="date-input" id="selectTemporada" style="min-width:120px">
     <option value="">Todas</option>
   </select>
+  <span class="range-label" style="margin-left:12px">Canal</span>
+  <select class="date-input" id="selectCanal" style="min-width:120px" onchange="renderAll()">
+    <option value="">Todos</option>
+    <option value="LOCAL">LOCAL</option>
+    <option value="TIENDA">TIENDA</option>
+  </select>
   <button class="btn-load" onclick="loadAllData()">↻ Cargar datos</button>
 </div>
 
@@ -642,7 +648,7 @@
     </div>
   </div>
 
-  <!-- Gráfico 1: Ventas por Canal (barras apiladas) -->
+  <!-- Gráfico 1: Ventas por Canal (líneas) -->
   <div class="charts-grid">
     <div class="chart-card chart-full">
       <div class="chart-header">
@@ -652,9 +658,9 @@
         </div>
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--local1)"></div>Local 1 (fact.)</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--local2)"></div>Local 2 (s/fact.)</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--tienda)"></div>Tienda Online</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--local1)"></div>Local</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--tienda)"></div>Tienda</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Total</div>
           </div>
           <div style="display:flex;gap:4px">
             <button class="preset-btn active" id="btnSemana" onclick="setCanalAgrup('semana')">Semana</button>
@@ -690,6 +696,17 @@
         </div>
       </div>
       <div class="chart-wrap"><canvas id="marcaChart"></canvas></div>
+    </div>
+
+    <!-- Gráfico 4: Margen % por Marca -->
+    <div class="chart-card chart-full">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Margen % por Marca</div>
+          <div class="chart-subtitle">((Ventas − Costo) / Ventas) × 100 · período seleccionado</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="margenChart"></canvas></div>
     </div>
   </div>
 
@@ -945,6 +962,10 @@ function getTemporada() {
   return document.getElementById('selectTemporada').value;
 }
 
+function getCanal() {
+  return document.getElementById('selectCanal').value;
+}
+
 function populateTemporadas() {
   const temps = [...new Set(rawVentas.map(r => r.temporada).filter(Boolean))].sort().reverse();
   const sel = document.getElementById('selectTemporada');
@@ -955,11 +976,14 @@ function populateTemporadas() {
 
 function filterVentas(rows) {
   const { from, to } = getDateRange();
-  const temp = getTemporada();
+  const temp  = getTemporada();
+  const canal = getCanal();
   return rows.filter(r => {
     const d = parseDate(r['fecha']);
     if (!d || d < from || d > to) return false;
     if (temp && r.temporada !== temp) return false;
+    if (canal === 'LOCAL' && r.fuente === 'Tienda Online') return false;
+    if (canal === 'TIENDA' && r.fuente !== 'Tienda Online') return false;
     return true;
   });
 }
@@ -981,6 +1005,7 @@ function renderAll() {
   renderCanalChart(ventas);
   renderMensualChart(ventas, bi);
   renderMarcaChart(ventas);
+  renderMargenChart(ventas, bi);
   renderArticulosTable(ventas);
   renderPagoTable(ventas);
   renderDiaTable(ventas);
@@ -1036,9 +1061,7 @@ function setCanalAgrup(agrup) {
 
 function renderCanalChart(ventas) {
   lastVentasCanal = ventas;
-  const c1 = '#7ba8cc', c2 = '#e07060', ct = '#d4a853';
 
-  // Agrupar por período — Local Físico = L1 + L2, Tienda separada
   const byPeriod = {};
   ventas.forEach(r => {
     const d = parseDate(r.fecha);
@@ -1049,12 +1072,10 @@ function renderCanalChart(ventas) {
     } else {
       key = getWeekKey(d);
     }
-    if (!byPeriod[key]) byPeriod[key] = { 'Local 1': 0, 'Local 2': 0, 'Local Físico': 0, 'Tienda Online': 0 };
-    const canal = r.fuente || 'Otro';
+    if (!byPeriod[key]) byPeriod[key] = { local: 0, tienda: 0 };
     const val = parseNum(r.total);
-    if (canal === 'Local 1') { byPeriod[key]['Local 1'] += val; byPeriod[key]['Local Físico'] += val; }
-    else if (canal === 'Local 2') { byPeriod[key]['Local 2'] += val; byPeriod[key]['Local Físico'] += val; }
-    else if (canal === 'Tienda Online') byPeriod[key]['Tienda Online'] += val;
+    if (r.fuente === 'Tienda Online') byPeriod[key].tienda += val;
+    else byPeriod[key].local += val;
   });
 
   const periods = Object.keys(byPeriod).sort();
@@ -1069,13 +1090,13 @@ function renderCanalChart(ventas) {
 
   if (charts.canal) charts.canal.destroy();
   charts.canal = new Chart(document.getElementById('canalChart'), {
-    type: 'bar',
+    type: 'line',
     data: {
       labels,
       datasets: [
-        { label: 'Local 1 (fact.)', data: periods.map(p => byPeriod[p]['Local 1']), backgroundColor: '#7ba8ccdd', borderColor: '#7ba8cc', borderWidth: 1, stack: 'local' },
-        { label: 'Local 2 (s/fact.)', data: periods.map(p => byPeriod[p]['Local 2']), backgroundColor: '#e07060dd', borderColor: '#e07060', borderWidth: 1, stack: 'local' },
-        { label: 'Tienda Online', data: periods.map(p => byPeriod[p]['Tienda Online']), backgroundColor: '#d4a853dd', borderColor: '#d4a853', borderWidth: 1, stack: 'tienda' }
+        { label: 'Local', data: periods.map(p => byPeriod[p].local), borderColor: '#7ba8cc', backgroundColor: '#7ba8cc20', tension: 0.4, fill: false, pointRadius: 3, borderWidth: 2 },
+        { label: 'Tienda', data: periods.map(p => byPeriod[p].tienda), borderColor: '#d4a853', backgroundColor: '#d4a85320', tension: 0.4, fill: false, pointRadius: 3, borderWidth: 2 },
+        { label: 'Total', data: periods.map(p => byPeriod[p].local + byPeriod[p].tienda), borderColor: '#a78bfa', backgroundColor: '#a78bfa20', tension: 0.4, fill: false, pointRadius: 3, borderWidth: 2, borderDash: [5,3] }
       ]
     },
     options: {
@@ -1089,13 +1110,7 @@ function renderCanalChart(ventas) {
           borderWidth: 1,
           titleColor: '#f0ede8',
           bodyColor: '#9a9690',
-          callbacks: {
-            label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`,
-            footer: items => {
-              const local = (byPeriod[periods[items[0].dataIndex]]?.['Local Físico']) || 0;
-              return `Local físico total: ${fmtARSFull(local)}`;
-            }
-          }
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}` }
         }
       },
       scales: {
@@ -1230,6 +1245,74 @@ function renderMarcaChart(ventas) {
   });
 }
 
+// ─── MARGEN CHART ─────────────────────────────────────────────────────────────
+function renderMargenChart(ventas, bi) {
+  // Construir mapa SKU → costo total desde BI sheet
+  const costoPorSku = {};
+  bi.forEach(r => {
+    const sku = r.sku || '';
+    if (!sku) return;
+    if (!costoPorSku[sku]) costoPorSku[sku] = 0;
+    costoPorSku[sku] += parseNum(r.costo_total || r.costo || 0);
+  });
+
+  // Agrupar ventas y costos por marca
+  const byMarca = {};
+  ventas.forEach(r => {
+    const m = r.marca || 'Sin marca';
+    const sku = r.sku || '';
+    if (!byMarca[m]) byMarca[m] = { ventas: 0, costo: 0 };
+    byMarca[m].ventas += parseNum(r.total);
+    byMarca[m].costo  += costoPorSku[sku] || 0;
+  });
+
+  // Calcular margen % y filtrar marcas con ventas > 0
+  let entries = Object.entries(byMarca)
+    .filter(([, d]) => d.ventas > 0)
+    .map(([marca, d]) => ({
+      marca,
+      margen: d.ventas > 0 ? ((d.ventas - d.costo) / d.ventas) * 100 : 0
+    }))
+    .sort((a, b) => b.margen - a.margen);
+
+  if (entries.length > 12) entries = entries.slice(0, 12);
+
+  const labels = entries.map(e => e.marca);
+  const data   = entries.map(e => Math.round(e.margen * 10) / 10);
+  const colors = data.map(v => v >= 40 ? '#8fbe9e' : v >= 20 ? '#d4a853' : '#e07060');
+
+  if (charts.margen) charts.margen.destroy();
+  charts.margen = new Chart(document.getElementById('margenChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Margen %',
+        data,
+        backgroundColor: colors.map(c => c + 'b0'),
+        borderColor: colors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#171714', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+          titleColor: '#f0ede8', bodyColor: '#9a9690',
+          callbacks: { label: ctx => ` Margen: ${ctx.parsed.x.toFixed(1)}%` }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#5a5750', font: { family: 'DM Mono', size: 10 }, callback: v => v + '%' }, max: 100 },
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#f0ede8', font: { family: 'DM Mono', size: 11 } } }
+      }
+    }
+  });
+}
+
 // ─── ARTÍCULOS TABLE ──────────────────────────────────────────────────────────
 function renderArticulosTable(ventas) {
   const byArt = {};
@@ -1341,17 +1424,24 @@ async function runAI() {
   const rango = from.toLocaleDateString('es-AR') + ' al ' + to.toLocaleDateString('es-AR') + (temp ? ' · Temporada ' + temp : '');
 
   const totalVentas = ventas.reduce((s,r) => s+parseNum(r.total), 0);
-  const byCanal = {}, byMarca = {}, byPago = {};
+  const byCanal = {}, byMarca = {}, byPago = {}, byArticulo = {};
   ventas.forEach(r => {
-    // Agrupar Local 1 y Local 2 como "Local Físico"
     const c = (r.fuente === 'Local 1' || r.fuente === 'Local 2') ? 'Local Físico' : (r.fuente||'');
     byCanal[c] = (byCanal[c]||0)+parseNum(r.total);
     const m = r.marca||''; byMarca[m] = (byMarca[m]||0)+parseNum(r.total);
     const p = r.forma_de_pago||''; byPago[p] = (byPago[p]||0)+parseNum(r.total);
+    const a = r.articulo||r.sku||''; byArticulo[a] = (byArticulo[a]||0)+parseNum(r.total);
   });
 
   const topMarcas = Object.entries(byMarca).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topCanales = Object.entries(byCanal).sort((a,b)=>b[1]-a[1]);
+
+  // Pareto: top 20% de artículos por facturación
+  const artsSorted = Object.entries(byArticulo).sort((a,b)=>b[1]-a[1]);
+  const top20pct = Math.ceil(artsSorted.length * 0.2);
+  const top20Arts = artsSorted.slice(0, top20pct);
+  const top20Total = top20Arts.reduce((s,[,v]) => s+v, 0);
+  const top20Pct = totalVentas > 0 ? (top20Total / totalVentas * 100).toFixed(1) : 0;
 
   const resumen = {
     periodo: rango,
@@ -1361,7 +1451,13 @@ async function runAI() {
     ticket_promedio: Math.round(ventas.length ? totalVentas/ventas.length : 0),
     canales: topCanales.map(([c,v]) => `${c}: $${Math.round(v).toLocaleString('es-AR')}`),
     top_marcas: topMarcas.map(([m,v]) => `${m}: $${Math.round(v).toLocaleString('es-AR')}`),
-    formas_de_pago: Object.entries(byPago).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,v]) => `${p}: $${Math.round(v).toLocaleString('es-AR')}`)
+    formas_de_pago: Object.entries(byPago).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,v]) => `${p}: $${Math.round(v).toLocaleString('es-AR')}`),
+    pareto: {
+      total_articulos: artsSorted.length,
+      top_20pct_cantidad: top20pct,
+      top_20pct_representa: top20Pct + '% de las ventas totales',
+      top_articulos: top20Arts.slice(0,5).map(([a,v]) => `${a}: $${Math.round(v).toLocaleString('es-AR')}`)
+    }
   };
 
   try {
