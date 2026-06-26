@@ -45,7 +45,11 @@ main{padding:32px 40px;max-width:1600px}
 .scorecard:nth-child(4)::before{background:var(--accent4)}
 .scorecard:nth-child(5)::before{background:#a78bfa}
 .scorecard:nth-child(6)::before{background:#fb923c}
-.scorecard:nth-child(1){animation-delay:0.0s}.scorecard:nth-child(2){animation-delay:0.07s}.scorecard:nth-child(3){animation-delay:0.14s}.scorecard:nth-child(4){animation-delay:0.21s}.scorecard:nth-child(5){animation-delay:0.28s}.scorecard:nth-child(6){animation-delay:0.35s}
+.scorecard:nth-child(7)::before{background:#38bdf8}
+.scorecard:nth-child(1){animation-delay:0.0s}.scorecard:nth-child(2){animation-delay:0.07s}.scorecard:nth-child(3){animation-delay:0.14s}.scorecard:nth-child(4){animation-delay:0.21s}.scorecard:nth-child(5){animation-delay:0.28s}.scorecard:nth-child(6){animation-delay:0.35s}.scorecard:nth-child(7){animation-delay:0.42s}
+.cov-warn{color:#e07060!important}
+.cov-ok{color:#8fbe9e!important}
+.cov-mid{color:#d4a853!important}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .sc-label{font-size:11px;color:var(--muted2);font-family:var(--font-mono);letter-spacing:0.05em;margin-bottom:8px}
 .sc-value{font-family:var(--font-display);font-size:26px;font-weight:300;color:var(--text);line-height:1}
@@ -186,6 +190,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
     <div class="scorecard"><div class="sc-label">Ticket Promedio</div><div class="sc-value" id="scTicket">—</div><div class="sc-sub">por artículo</div></div>
     <div class="scorecard"><div class="sc-label">Costo Total</div><div class="sc-value" id="scCosto">—</div><div class="sc-sub" id="scCostoSub">PPC</div></div>
     <div class="scorecard"><div class="sc-label">Margen Global</div><div class="sc-value" id="scMargen">—</div><div class="sc-sub" id="scMargenSub">(ventas-costo)/ventas</div></div>
+    <div class="scorecard"><div class="sc-label">Cobertura PPC</div><div class="sc-value" id="scCobertura">—</div><div class="sc-sub" id="scCoberturaSub">— u sin costo</div></div>
     <div class="scorecard"><div class="sc-label">Días Activos</div><div class="sc-value" id="scDias">—</div><div class="sc-sub">con ventas registradas</div></div>
   </div>
 
@@ -549,15 +554,29 @@ function renderScorecards(ventas){
   const totalV=ventas.reduce((s,r)=>s+parseNum(r.total),0);
   const totalQty=ventas.reduce((s,r)=>s+parseNum(r.cantidad),0);
   const ticket=ventas.length?totalV/ventas.length:0;
-  const totalC=ventas.reduce((s,r)=>{const c=getCost(r.sku);return s+(c.value!=null?c.value*parseNum(r.cantidad):0);},0);
+  let totalC=0,qtyConCosto=0,qtySinCosto=0;
+  ventas.forEach(r=>{
+    const cant=parseNum(r.cantidad);
+    const c=getCost(r.sku);
+    if(c.value!=null){totalC+=c.value*cant;qtyConCosto+=cant;}
+    else qtySinCosto+=cant;
+  });
   const margen=totalV>0?((totalV-totalC)/totalV*100):0;
+  const cobertura=totalQty>0?(qtyConCosto/totalQty*100):0;
   const dias=new Set(ventas.map(r=>r.fecha)).size;
   document.getElementById('scTotal').textContent=fmtARS(totalV);
   document.getElementById('scTx').textContent=Math.round(totalQty).toLocaleString('es-AR');
   document.getElementById('scTicket').textContent=fmtARS(ticket);
   document.getElementById('scCosto').textContent=fmtARS(totalC);
   document.getElementById('scMargen').textContent=margen.toFixed(1)+'%';
+  const covEl=document.getElementById('scCobertura');
+  covEl.textContent=cobertura.toFixed(0)+'%';
+  covEl.classList.remove('cov-warn','cov-ok','cov-mid');
+  covEl.classList.add(cobertura>=95?'cov-ok':cobertura>=80?'cov-mid':'cov-warn');
+  document.getElementById('scCoberturaSub').textContent=Math.round(qtySinCosto).toLocaleString('es-AR')+' u sin costo'+(cobertura<95?' · margen real ≠ mostrado':'');
   document.getElementById('scDias').textContent=dias;
+  // Guardar para IA
+  window._lastCobertura={pct:cobertura,sinCosto:qtySinCosto,conCosto:qtyConCosto,totalQty};
 }
 
 function setCanalAgrup(a){
@@ -748,7 +767,13 @@ async function runAI(){
   const top20=Math.ceil(artsSorted.length*0.2);
   const top20V=artsSorted.slice(0,top20).reduce((s,[,v])=>s+v,0);
 
-  const resumen={periodo:rango,temporada:temp||'todas',total_ventas_ars:Math.round(totalV),total_costo_ppc_ars:Math.round(totalC),margen_global:margen,transacciones:ventas.length,ticket_promedio:Math.round(ventas.length?totalV/ventas.length:0),canales:Object.entries(byCanal).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`${c}: $${Math.round(v).toLocaleString('es-AR')}`),top_marcas:topMarcas.map(([m,v])=>`${m}: $${Math.round(v).toLocaleString('es-AR')}`),formas_de_pago:Object.entries(byPago).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,v])=>`${p}: $${Math.round(v).toLocaleString('es-AR')}`),pareto:`Top 20% (${top20} de ${artsSorted.length}) = ${totalV>0?(top20V/totalV*100).toFixed(1):0}% de ventas`,top_articulos:artsSorted.slice(0,8).map(([a,v])=>`${a}: $${Math.round(v).toLocaleString('es-AR')}`)};
+  const cov=window._lastCobertura||{pct:0,sinCosto:0,conCosto:0,totalQty:0};
+  const coberturaTxt=cov.pct>=95
+    ? `${cov.pct.toFixed(0)}% (margen confiable)`
+    : cov.pct>=80
+      ? `${cov.pct.toFixed(0)}% (${Math.round(cov.sinCosto)} u sin costo — margen real podría ser MENOR al mostrado)`
+      : `${cov.pct.toFixed(0)}% (${Math.round(cov.sinCosto)} u sin costo — CUIDADO: margen mostrado es probablemente INFLADO, gran parte de las ventas no tienen costo cargado)`;
+  const resumen={periodo:rango,temporada:temp||'todas',total_ventas_ars:Math.round(totalV),total_costo_ppc_ars:Math.round(totalC),margen_global:margen,cobertura_ppc:coberturaTxt,advertencia_cobertura:cov.pct<95?'El costo PPC NO incluye '+Math.round(cov.sinCosto)+' unidades vendidas porque no hay compras cargadas para esos SKUs. Esto INFLA el margen aparente. NO concluyas sobre margen real sin advertir esto al usuario.':'Cobertura completa, margen confiable.',transacciones:ventas.length,ticket_promedio:Math.round(ventas.length?totalV/ventas.length:0),canales:Object.entries(byCanal).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`${c}: $${Math.round(v).toLocaleString('es-AR')}`),top_marcas:topMarcas.map(([m,v])=>`${m}: $${Math.round(v).toLocaleString('es-AR')}`),formas_de_pago:Object.entries(byPago).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([p,v])=>`${p}: $${Math.round(v).toLocaleString('es-AR')}`),pareto:`Top 20% (${top20} de ${artsSorted.length}) = ${totalV>0?(top20V/totalV*100).toFixed(1):0}% de ventas`,top_articulos:artsSorted.slice(0,8).map(([a,v])=>`${a}: $${Math.round(v).toLocaleString('es-AR')}`)};
 
   try{
     const resp=await fetch(WEBHOOK_AI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resumen,rango,tipo:'ventas_intelligence'})});
