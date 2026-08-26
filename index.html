@@ -213,6 +213,24 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
       <div class="chart-wrap-tall"><canvas id="canalChart"></canvas></div>
     </div>
 
+    <div class="chart-card chart-full">
+      <div class="chart-header">
+        <div><div class="chart-title">Unidades por Canal</div><div class="chart-subtitle" id="canalQSubtitle">Agrupado semanal · unidades</div></div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--local1)"></div>Local</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--tienda)"></div>Tienda</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Total</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="preset-btn active" id="btnQSemana" onclick="setCanalQAgrup('semana')">Semana</button>
+            <button class="preset-btn" id="btnQMes" onclick="setCanalQAgrup('mes')">Mes</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap-tall"><canvas id="canalQChart"></canvas></div>
+    </div>
+
     <div class="chart-card">
       <div class="chart-header">
         <div><div class="chart-title">Ventas / Costo PPC / Cantidad por Mes</div><div class="chart-subtitle">Agrupado mensual · ARS</div></div>
@@ -318,6 +336,8 @@ let rawVentas=[],rawCompras=[],rawBI=[];
 let charts={};
 let canalAgrup='semana';
 let lastVentasCanal=[];
+let canalQAgrup='semana';
+let lastVentasCanalQ=[];
 let ppcCache={}; // {bySku, byArt, key}
 
 function setStatus(label,kind){
@@ -539,6 +559,7 @@ function renderAll(){
   const ventas=filterVentas(rawVentas);
   renderScorecards(ventas);
   renderCanalChart(ventas);
+  renderCanalQChart(ventas);
   renderMensualChart(ventas);
   renderMarcaChart(ventas);
   renderMargenChart(ventas);
@@ -602,6 +623,34 @@ function renderCanalChart(ventas){
       {label:'Total',data:periods.map(p=>byP[p].local+byP[p].tienda),borderColor:'#a78bfa',backgroundColor:'#a78bfa20',tension:.4,fill:false,pointRadius:3,borderWidth:2,borderDash:[5,3]}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtARSFull(ctx.parsed.y)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},maxTicksLimit:16}},y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:v=>fmtARS(v)}}}}
+  });
+}
+
+// ===== UNIDADES POR CANAL (gemela de Ventas por Canal, pero en cantidades) =====
+function setCanalQAgrup(a){
+  canalQAgrup=a;
+  document.getElementById('btnQSemana').classList.toggle('active',a==='semana');
+  document.getElementById('btnQMes').classList.toggle('active',a==='mes');
+  document.getElementById('canalQSubtitle').textContent=(a==='semana'?'Agrupado semanal':'Agrupado mensual')+' · unidades';
+  if(lastVentasCanalQ.length)renderCanalQChart(lastVentasCanalQ);
+}
+
+function renderCanalQChart(ventas){
+  lastVentasCanalQ=ventas;
+  const fmtU=n=>Math.round(n).toLocaleString('es-AR');
+  const byP={};
+  ventas.forEach(r=>{const d=parseDate(r.fecha);if(!d)return;const k=canalQAgrup==='mes'?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:getWeekKey(d);if(!byP[k])byP[k]={local:0,tienda:0};const q=parseNum(r.cantidad);if(r.fuente==='Tienda Online')byP[k].tienda+=q;else byP[k].local+=q;});
+  const periods=Object.keys(byP).sort();
+  const labels=periods.map(p=>{if(canalQAgrup==='mes'){const[y,m]=p.split('-');return new Date(+y,+m-1,1).toLocaleString('es-AR',{month:'short',year:'2-digit'});}const d=new Date(p);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;});
+  if(charts.canalQ)charts.canalQ.destroy();
+  charts.canalQ=new Chart(document.getElementById('canalQChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Local',data:periods.map(p=>byP[p].local),borderColor:'#7ba8cc',backgroundColor:'#7ba8cc20',tension:.4,fill:false,pointRadius:3,borderWidth:2},
+      {label:'Tienda',data:periods.map(p=>byP[p].tienda),borderColor:'#d4a853',backgroundColor:'#d4a85320',tension:.4,fill:false,pointRadius:3,borderWidth:2},
+      {label:'Total',data:periods.map(p=>byP[p].local+byP[p].tienda),borderColor:'#a78bfa',backgroundColor:'#a78bfa20',tension:.4,fill:false,pointRadius:3,borderWidth:2,borderDash:[5,3]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtU(ctx.parsed.y)} u`}}},scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},maxTicksLimit:16}},y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:v=>fmtU(v)},beginAtZero:true}}}
   });
 }
 
