@@ -131,6 +131,25 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 .ppc-badge.sin{background:#5a575025;color:var(--muted2)}
 
 @media(max-width:768px){header,.controls-bar,main,footer{padding-left:20px;padding-right:20px}.charts-grid{grid-template-columns:1fr}.chart-full{grid-column:1}.scorecards{grid-template-columns:repeat(2,1fr)}.am-panel{width:100%}.am-kpis{grid-template-columns:repeat(2,1fr)}}
+/* ===== PESTAÑAS ===== */
+.tabs-bar{display:flex;gap:2px;padding:0 40px;border-bottom:1px solid var(--border);background:var(--bg)}
+.tab-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;padding:12px 18px;cursor:pointer;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* ===== SELECTOR MÚLTIPLE ===== */
+.ms{position:relative;display:inline-block}
+.ms-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:6px 10px;cursor:pointer;min-width:112px;text-align:left;outline:none}
+.ms-btn:hover{border-color:var(--accent)}
+.ms.sel .ms-btn{border-color:var(--accent);color:var(--accent)}
+.ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--surface);border:1px solid var(--border2);min-width:160px;max-height:300px;overflow-y:auto;padding:6px;box-shadow:0 10px 28px rgba(0,0,0,.55)}
+.ms.open .ms-panel{display:block}
+.ms-actions{display:flex;gap:10px;padding:2px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.ms-actions span{font-size:10px;color:var(--accent);cursor:pointer;font-family:var(--font-mono);text-decoration:underline}
+.ms-item{display:flex;align-items:center;gap:7px;padding:4px 5px;font-size:11px;font-family:var(--font-mono);cursor:pointer;color:var(--text);white-space:nowrap}
+.ms-item:hover{background:var(--surface2)}
+.ms-item input{cursor:pointer;accent-color:#d4a853}
+.ms-empty{color:var(--muted2);font-size:11px;font-family:var(--font-mono);padding:6px}
+.cmp-note{font-size:10px;color:var(--muted2);font-family:var(--font-mono);padding:10px 40px 0;line-height:1.6}
 </style>
 </head>
 <body>
@@ -183,7 +202,12 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 <div class="cache-banner" id="cacheBanner"></div>
 <div class="error-msg" id="errorMsg"></div>
 
-<main>
+<div class="tabs-bar">
+  <button class="tab-btn active" id="tabPanel" onclick="setVista('panel')">📊 Panel</button>
+  <button class="tab-btn" id="tabCmp" onclick="setVista('cmp')">📈 Comparativas</button>
+</div>
+
+<main id="vistaPanel">
   <div class="scorecards">
     <div class="scorecard"><div class="sc-label">Ventas Totales</div><div class="sc-value" id="scTotal">—</div><div class="sc-sub" id="scTotalSub">en el período</div></div>
     <div class="scorecard"><div class="sc-label">Cantidad</div><div class="sc-value" id="scTx">—</div><div class="sc-sub" id="scTxSub">unidades vendidas</div></div>
@@ -295,6 +319,71 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
   </div>
 </main>
 
+<main id="vistaCmp" style="display:none">
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header" style="margin-bottom:12px">
+      <div><div class="chart-title">Comparativa</div><div class="chart-subtitle">Eje X: meses · Una línea por cada año o temporada · Costeo con PPC histórico a la fecha de cada venta</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="range-label">Comparar por</span>
+      <div style="display:flex;gap:4px">
+        <button class="preset-btn active" id="btnCmpAnio" onclick="setCmpDim('anio')">Año</button>
+        <button class="preset-btn" id="btnCmpTemp" onclick="setCmpDim('temporada')">Temporada</button>
+      </div>
+      <span class="range-label" style="margin-left:8px">Años</span>
+      <div class="ms" id="msAnio">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Anio')"><span id="msAnioLbl">Todos</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Anio',true)">Todos</span><span onclick="cmsAll('Anio',false)">Ninguno</span></div>
+          <div id="msAnioList"></div>
+        </div>
+      </div>
+      <span class="range-label">Temporadas</span>
+      <div class="ms" id="msTemp">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Temp')"><span id="msTempLbl">Todas</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Temp',true)">Todas</span><span onclick="cmsAll('Temp',false)">Ninguna</span></div>
+          <div id="msTempList"></div>
+        </div>
+      </div>
+      <span class="range-label">Meses</span>
+      <div class="ms" id="msMes">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Mes')"><span id="msMesLbl">Todos</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Mes',true)">Todos</span><span onclick="cmsAll('Mes',false)">Ninguno</span></div>
+          <div id="msMesList"></div>
+        </div>
+      </div>
+      <span class="range-label">Marcas</span>
+      <div class="ms" id="msMarca">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Marca')"><span id="msMarcaLbl">Todas</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Marca',true)">Todas</span><span onclick="cmsAll('Marca',false)">Ninguna</span></div>
+          <div id="msMarcaList"></div>
+        </div>
+      </div>
+      <span class="range-label">Canal</span>
+      <select class="date-input" id="cmpCanal" onchange="renderCmp()"><option value="">Todos</option><option value="LOCAL">Local</option><option value="TIENDA">Tienda</option></select>
+    </div>
+    <div id="cmpResumen" class="cmp-note" style="padding-left:0;padding-right:0"></div>
+  </div>
+
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header"><div><div class="chart-title">Monto de Venta</div><div class="chart-subtitle">ARS facturados por mes</div></div><div class="legend" id="cmpLeg1"></div></div>
+    <div class="chart-wrap-tall"><canvas id="cmpMonto"></canvas></div>
+  </div>
+
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header"><div><div class="chart-title">Cantidad de Venta</div><div class="chart-subtitle">Unidades vendidas por mes</div></div><div class="legend" id="cmpLeg2"></div></div>
+    <div class="chart-wrap-tall"><canvas id="cmpCant"></canvas></div>
+  </div>
+
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header"><div><div class="chart-title">Margen Bruto</div><div class="chart-subtitle">(Ingresos − Costo de mercadería) / Ingresos · calculado sobre los totales del mes, no como promedio de porcentajes</div></div><div class="legend" id="cmpLeg3"></div></div>
+    <div class="chart-wrap-tall"><canvas id="cmpMargen"></canvas></div>
+  </div>
+</main>
+
 <!-- ===== MODAL DETALLE ARTÍCULO ===== -->
 <div class="article-modal" id="articleModal" aria-hidden="true">
   <div class="am-backdrop" onclick="closeArticleModal()"></div>
@@ -365,7 +454,7 @@ function loadCache(){
     if(Date.now()-c.ts>CACHE_TTL_MS){localStorage.removeItem(CACHE_KEY);return false;}
     if(c.dateFrom)document.getElementById('dateFrom').value=c.dateFrom;
     if(c.dateTo)document.getElementById('dateTo').value=c.dateTo;
-    rawVentas=c.rawVentas||[];rawCompras=c.rawCompras||[];rawBI=c.rawBI||[];
+    rawVentas=c.rawVentas||[];rawCompras=c.rawCompras||[];rawBI=c.rawBI||[];histCache=null;
     populateTemporadas();
     if(c.temp)document.getElementById('selectTemporada').value=c.temp;
     if(c.canal)document.getElementById('selectCanal').value=c.canal;
@@ -428,7 +517,7 @@ async function loadAllData(){
   showLoading('Consultando webhook...');hideError();
   try{
     const d=await fetchAllData();
-    rawVentas=d.ventas;rawCompras=d.compras;rawBI=d.bi;
+    rawVentas=d.ventas;rawCompras=d.compras;rawBI=d.bi;histCache=null;
     setLoading('Procesando...');populateTemporadas();renderAll();
     document.getElementById('lastUpdate').textContent='⚡ En vivo · '+new Date().toLocaleString('es-AR');
     document.getElementById('cacheBanner').classList.remove('visible');
@@ -459,6 +548,177 @@ function filterVentas(rows){
     if(canal==='TIENDA'&&r.fuente!=='Tienda Online')return false;
     return true;
   });
+}
+
+// ================= COMPARATIVAS =================
+// PPC HISTÓRICO: cada venta se costea con el promedio ponderado de las compras
+// de ese SKU HASTA la fecha de esa venta. Es imprescindible para comparar años:
+// costear una venta de 2024 con precios de 2026 daría un margen absurdo.
+let histCache=null;
+function buildHist(){
+  if(histCache)return histCache;
+  const bySku={},byArt={};
+  rawCompras.filter(c=>String(c['Impacto stock']||'').toLowerCase().startsWith('si')).forEach(c=>{
+    const sku=String(c['Código (SKU)']||'').trim().toUpperCase();if(!sku)return;
+    const d=parseDate(c['Fecha compra']);if(!d)return;
+    const qty=parseNum(c['Cantidad']);if(qty<=0)return;
+    const amt=parseNum(c['Subtotal ($)']||c['Importe ($)']||c['Precio neto ($)']||0);
+    const e={t:d.getTime(),qty,amt};
+    (bySku[sku]=bySku[sku]||[]).push(e);
+    const i=parseArticulo(sku);
+    if(i)(byArt[i.articulo]=byArt[i.articulo]||[]).push(e);
+  });
+  // ordenar por fecha y precalcular sumas acumuladas
+  function prep(map){
+    for(const k in map){
+      const a=map[k].sort((x,y)=>x.t-y.t);
+      let q=0,m=0;
+      a.forEach(e=>{q+=e.qty;m+=e.amt;e.cq=q;e.cm=m;});
+    }
+  }
+  prep(bySku);prep(byArt);
+  histCache={bySku,byArt};
+  return histCache;
+}
+// promedio ponderado acumulado hasta la fecha t (búsqueda binaria)
+function ppcHastaFecha(arr,t){
+  if(!arr||!arr.length)return null;
+  let lo=0,hi=arr.length-1,idx=-1;
+  while(lo<=hi){const mid=(lo+hi)>>1;if(arr[mid].t<=t){idx=mid;lo=mid+1;}else hi=mid-1;}
+  if(idx<0){ // no hay compras previas: uso la primera disponible como proxy
+    const e=arr[0];return e.cq>0?e.cm/e.cq:null;
+  }
+  const e=arr[idx];return e.cq>0?e.cm/e.cq:null;
+}
+function costoHistorico(sku,fecha){
+  const {bySku,byArt}=buildHist();
+  const SKU=String(sku||'').toUpperCase();const t=fecha.getTime();
+  let v=ppcHastaFecha(bySku[SKU],t);
+  if(v!=null)return v;
+  const i=parseArticulo(SKU);
+  if(i){v=ppcHastaFecha(byArt[i.articulo],t);if(v!=null)return v;}
+  const b=biCostBySku&&biCostBySku[SKU];
+  return (b!=null)?b:null;
+}
+
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const PALETA=['#d4a853','#7ba8cc','#8fbe9e','#a78bfa','#e07060','#e8c547','#f0ede8','#5a9e8f','#c98bb9','#9a9690'];
+let cmpDim='anio';
+const CMS={Anio:new Set(),Temp:new Set(),Mes:new Set(),Marca:new Set()};
+const CMSOPT={Anio:[],Temp:[],Mes:[],Marca:[]};
+
+function cmsToggle(k){
+  const el=document.getElementById('ms'+k);const ab=el.classList.contains('open');
+  document.querySelectorAll('.ms').forEach(x=>x.classList.remove('open'));
+  if(!ab)el.classList.add('open');
+}
+function cmsRender(k){
+  const list=document.getElementById('ms'+k+'List');const opts=CMSOPT[k]||[];
+  list.innerHTML=opts.length
+    ? opts.map(o=>{const v=(typeof o==='object')?o.v:o,lab=(typeof o==='object')?o.lab:o;
+        return `<label class="ms-item"><input type="checkbox" value="${v}" ${CMS[k].has(String(v))?'checked':''} onchange="cmsChange('${k}',this)">${lab}</label>`;}).join('')
+    : '<div class="ms-empty">sin datos</div>';
+  cmsLabel(k);
+}
+function cmsChange(k,cb){if(cb.checked)CMS[k].add(cb.value);else CMS[k].delete(cb.value);cmsLabel(k);renderCmp();}
+function cmsAll(k,on){CMS[k].clear();if(on)(CMSOPT[k]||[]).forEach(o=>CMS[k].add(String((typeof o==='object')?o.v:o)));cmsRender(k);renderCmp();}
+function cmsLabel(k){
+  const n=CMS[k].size,tot=(CMSOPT[k]||[]).length;const todas=(n===0||n===tot);
+  document.getElementById('ms'+k+'Lbl').textContent=todas?(k==='Anio'||k==='Mes'?'Todos':'Todas'):(n===1?[...CMS[k]][0]:n+' sel.');
+  document.getElementById('ms'+k).classList.toggle('sel',!todas);
+}
+function cmsSel(k){const n=CMS[k].size,tot=(CMSOPT[k]||[]).length;return(n===0||n===tot)?[]:[...CMS[k]];}
+document.addEventListener('click',e=>{if(!e.target.closest('.ms'))document.querySelectorAll('.ms').forEach(x=>x.classList.remove('open'));});
+
+function poblarCmp(){
+  const anios=new Set(),temps=new Set(),marcas=new Set();
+  rawVentas.forEach(r=>{
+    const d=parseDate(r.fecha);if(d)anios.add(String(d.getFullYear()));
+    if(r.temporada)temps.add(r.temporada);
+    if(r.marca)marcas.add(r.marca);
+  });
+  CMSOPT.Anio=[...anios].sort().reverse();
+  CMSOPT.Temp=[...temps].sort().reverse();
+  CMSOPT.Marca=[...marcas].sort();
+  CMSOPT.Mes=MESES.map((m,i)=>({v:i,lab:m}));
+  ['Anio','Temp','Mes','Marca'].forEach(k=>{
+    [...CMS[k]].forEach(v=>{if(!CMSOPT[k].some(o=>String((typeof o==='object')?o.v:o)===v))CMS[k].delete(v);});
+    cmsRender(k);
+  });
+}
+function setCmpDim(d){
+  cmpDim=d;
+  document.getElementById('btnCmpAnio').classList.toggle('active',d==='anio');
+  document.getElementById('btnCmpTemp').classList.toggle('active',d==='temporada');
+  renderCmp();
+}
+function setVista(v){
+  const p=(v==='panel');
+  document.getElementById('vistaPanel').style.display=p?'':'none';
+  document.getElementById('vistaCmp').style.display=p?'none':'';
+  document.getElementById('tabPanel').classList.toggle('active',p);
+  document.getElementById('tabCmp').classList.toggle('active',!p);
+  if(!p){poblarCmp();renderCmp();}
+}
+
+function renderCmp(){
+  if(!rawVentas.length)return;
+  buildBIMap();
+  const fA=cmsSel('Anio'),fT=cmsSel('Temp'),fM=cmsSel('Mes'),fMar=cmsSel('Marca');
+  const canal=document.getElementById('cmpCanal').value;
+  // acumuladores: serie -> mes -> {monto, cant, ing_con_costo, costo}
+  const acc={};
+  let sinCostoU=0,totU=0;
+  rawVentas.forEach(r=>{
+    const d=parseDate(r.fecha);if(!d)return;
+    const anio=String(d.getFullYear()),mes=d.getMonth();
+    if(fA.length&&fA.indexOf(anio)<0)return;
+    if(fT.length&&fT.indexOf(r.temporada)<0)return;
+    if(fM.length&&fM.indexOf(String(mes))<0)return;
+    if(fMar.length&&fMar.indexOf(r.marca)<0)return;
+    if(canal==='LOCAL'&&r.fuente==='Tienda Online')return;
+    if(canal==='TIENDA'&&r.fuente!=='Tienda Online')return;
+    const serie=(cmpDim==='anio')?anio:(r.temporada||'(sin temp.)');
+    if(!acc[serie])acc[serie]={};
+    if(!acc[serie][mes])acc[serie][mes]={monto:0,cant:0,ing:0,costo:0};
+    const b=acc[serie][mes];
+    const cant=parseNum(r.cantidad),tot=parseNum(r.total);
+    b.monto+=tot;b.cant+=cant;totU+=cant;
+    const cu=costoHistorico(r.sku,d);
+    if(cu!=null){b.ing+=tot;b.costo+=cu*cant;}
+    else sinCostoU+=cant;
+  });
+  const series=Object.keys(acc).sort();
+  const ds=(campo,esMargen)=>series.map((s,i)=>{
+    const col=PALETA[i%PALETA.length];
+    return{label:s,borderColor:col,backgroundColor:col+'20',tension:.35,fill:false,pointRadius:3,borderWidth:2,spanGaps:true,
+      data:MESES.map((_,m)=>{
+        const b=acc[s][m];if(!b)return null;
+        if(esMargen)return b.ing>0?Math.round(((b.ing-b.costo)/b.ing*1000))/10:null;
+        return b[campo]||0;
+      })};
+  });
+  const leyenda=el=>{document.getElementById(el).innerHTML=series.map((s,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETA[i%PALETA.length]}"></div>${s}</div>`).join('');};
+  ['cmpLeg1','cmpLeg2','cmpLeg3'].forEach(leyenda);
+  const fmtU=n=>Math.round(n).toLocaleString('es-AR');
+  function pinta(id,key,datasets,fmtTip,fmtEje,pct){
+    if(charts[key])charts[key].destroy();
+    charts[key]=new Chart(document.getElementById(id),{
+      type:'line',data:{labels:MESES,datasets},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtTip(ctx.parsed.y)}`}}},
+        scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10}}},
+                y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:fmtEje},beginAtZero:!pct}}}
+    });
+  }
+  pinta('cmpMonto','cmpMonto',ds('monto',false),v=>fmtARSFull(v),v=>fmtARS(v),false);
+  pinta('cmpCant','cmpCant',ds('cant',false),v=>fmtU(v)+' u',v=>fmtU(v),false);
+  pinta('cmpMargen','cmpMargen',ds(null,true),v=>v.toFixed(1)+'%',v=>v+'%',true);
+  // resumen honesto de cobertura
+  const cob=totU>0?((totU-sinCostoU)/totU*100):100;
+  document.getElementById('cmpResumen').innerHTML=
+    `${series.length} serie(s) · ${fmtU(totU)} u en el recorte · cobertura de costeo <b style="color:${cob>=95?'#8fbe9e':cob>=80?'#e8c547':'#e07060'}">${cob.toFixed(1)}%</b>`+
+    (sinCostoU>0?` — ${fmtU(sinCostoU)} u sin costo quedan FUERA del cálculo de margen (pero sí cuentan en monto y cantidad).`:'');
 }
 
 // ====== PPC ENGINE ======
