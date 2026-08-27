@@ -129,6 +129,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 .ppc-badge.previo{background:#d4a85325;color:var(--accent)}
 .ppc-badge.bi{background:#7ba8cc25;color:var(--accent2)}
 .ppc-badge.sin{background:#5a575025;color:var(--muted2)}
+.ppc-badge.art_temp{background:#a78bfa25;color:#a78bfa}
 
 @media(max-width:768px){header,.controls-bar,main,footer{padding-left:20px;padding-right:20px}.charts-grid{grid-template-columns:1fr}.chart-full{grid-column:1}.scorecards{grid-template-columns:repeat(2,1fr)}.am-panel{width:100%}.am-kpis{grid-template-columns:repeat(2,1fr)}}
 /* ===== PESTAÑAS ===== */
@@ -421,7 +422,7 @@ const API_KEY='mahra-stk-9F3K2P7Q-2026';
 const CACHE_KEY='mahra_ventas_cache_v1';
 const CACHE_TTL_MS=7*24*60*60*1000;
 
-let rawVentas=[],rawCompras=[],rawBI=[];
+let rawVentas=[],rawCompras=[],rawBI=[],rawCostos=[];
 let charts={};
 let canalAgrup='semana';
 let lastVentasCanal=[];
@@ -440,7 +441,7 @@ function setStatus(label,kind){
 // ====== CACHE ======
 function saveCache(){
   try{
-    const payload={ts:Date.now(),dateFrom:document.getElementById('dateFrom').value,dateTo:document.getElementById('dateTo').value,temp:document.getElementById('selectTemporada').value,canal:document.getElementById('selectCanal').value,costoSrc:document.getElementById('selectCostoSrc').value,rawVentas,rawCompras,rawBI};
+    const payload={ts:Date.now(),dateFrom:document.getElementById('dateFrom').value,dateTo:document.getElementById('dateTo').value,temp:document.getElementById('selectTemporada').value,canal:document.getElementById('selectCanal').value,costoSrc:document.getElementById('selectCostoSrc').value,rawVentas,rawCompras,rawBI,rawCostos};
     const json=JSON.stringify(payload);
     if(json.length>4500000){console.warn('[cache] >4.5MB, salteado');return;}
     localStorage.setItem(CACHE_KEY,json);
@@ -454,7 +455,7 @@ function loadCache(){
     if(Date.now()-c.ts>CACHE_TTL_MS){localStorage.removeItem(CACHE_KEY);return false;}
     if(c.dateFrom)document.getElementById('dateFrom').value=c.dateFrom;
     if(c.dateTo)document.getElementById('dateTo').value=c.dateTo;
-    rawVentas=c.rawVentas||[];rawCompras=c.rawCompras||[];rawBI=c.rawBI||[];histCache=null;
+    rawVentas=c.rawVentas||[];rawCompras=c.rawCompras||[];rawBI=c.rawBI||[];rawCostos=c.rawCostos||[];histCache=null;
     populateTemporadas();
     if(c.temp)document.getElementById('selectTemporada').value=c.temp;
     if(c.canal)document.getElementById('selectCanal').value=c.canal;
@@ -509,7 +510,7 @@ async function fetchAllData(){
   if(!resp.ok)throw new Error('Webhook HTTP '+resp.status+(txt?' · '+txt.slice(0,150):''));
   let data;try{data=JSON.parse(txt);}catch{throw new Error('Respuesta no JSON: '+txt.slice(0,150));}
   if(data.error)throw new Error(data.error);
-  return {ventas:data.ventas||[],compras:data.compras||[],bi:data.bi||[]};
+  return {ventas:data.ventas||[],compras:data.compras||[],bi:data.bi||[],costos:data.costos||[]};
 }
 
 async function loadAllData(){
@@ -517,7 +518,7 @@ async function loadAllData(){
   showLoading('Consultando webhook...');hideError();
   try{
     const d=await fetchAllData();
-    rawVentas=d.ventas;rawCompras=d.compras;rawBI=d.bi;histCache=null;
+    rawVentas=d.ventas;rawCompras=d.compras;rawBI=d.bi;rawCostos=d.costos||[];histCache=null;
     setLoading('Procesando...');populateTemporadas();renderAll();
     document.getElementById('lastUpdate').textContent='⚡ En vivo · '+new Date().toLocaleString('es-AR');
     document.getElementById('cacheBanner').classList.remove('visible');
@@ -598,7 +599,11 @@ function costoHistorico(sku,fecha){
   const i=parseArticulo(SKU);
   if(i){v=ppcHastaFecha(byArt[i.articulo],t);if(v!=null)return v;}
   const b=biCostBySku&&biCostBySku[SKU];
-  return (b!=null)?b:null;
+  if(b!=null)return b;
+  // Último escalón: costo por artículo+temporada. Clave para los años viejos,
+  // donde no hay compras cargadas en el sistema actual.
+  if(i){const c=costoArtTemp[i.articulo+'|'+i.temporada];if(c!=null)return c;}
+  return null;
 }
 
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -663,7 +668,7 @@ function setVista(v){
 
 function renderCmp(){
   if(!rawVentas.length)return;
-  buildBIMap();
+  buildBIMap();buildCostosMap();
   const fA=cmsSel('Anio'),fT=cmsSel('Temp'),fM=cmsSel('Mes'),fMar=cmsSel('Marca');
   const canal=document.getElementById('cmpCanal').value;
   // acumuladores: serie -> mes -> {monto, cant, ing_con_costo, costo}
@@ -792,7 +797,21 @@ function getCost(sku){
   // Fallback al BI sheet si el PPC falla
   const biCost=biCostBySku[SKU];
   if(biCost!=null)return{value:biCost,source:'bi'};
+  // Último escalón: costo por artículo+temporada (remito del sistema viejo / carga manual)
+  if(info){const v=costoArtTemp[info.articulo+'|'+info.temporada];if(v!=null)return{value:v,source:'art_temp'};}
   return{value:null,source:'sin_datos'};
+}
+
+// Costo por ARTICULO+TEMPORADA (planilla COSTOS_ART_TEMP). Solo rellena huecos.
+let costoArtTemp={};
+function buildCostosMap(){
+  costoArtTemp={};
+  rawCostos.forEach(r=>{
+    const a=String(r.ARTICULO||r.articulo||'').trim().toUpperCase();
+    const t=String(r.TEMPORADA||r.temporada||'').trim().toUpperCase();
+    const c=parseNum(r.COSTO||r.costo||0);
+    if(a&&t&&c>0)costoArtTemp[a+'|'+t]=c;
+  });
 }
 
 // BI map (sku → costo unitario promedio del BI sheet)
@@ -814,7 +833,7 @@ function buildBIMap(){
 // ====== RENDER ======
 function renderAll(){
   if(!rawVentas.length){return;}
-  buildBIMap();
+  buildBIMap();buildCostosMap();
   ppcCache.key=null;buildPPC();
   const ventas=filterVentas(rawVentas);
   renderScorecards(ventas);
@@ -1042,7 +1061,7 @@ function openArticleModal(article){
   ventasFilt.forEach(r=>{const sku=String(r.sku||'').toUpperCase();if(!sku)return;if(!bySku[sku])bySku[sku]={qty:0,total:0};bySku[sku].qty+=parseNum(r.cantidad);bySku[sku].total+=parseNum(r.total);});
   const topSku=Object.entries(bySku).sort((a,b)=>b[1].total-a[1].total).slice(0,8);
   const srcBadge={periodo:'periodo',previo:'previo',periodo_art:'periodo',previo_art:'previo',bi:'bi',sin_datos:'sin'};
-  const srcLabel={periodo:'PPC período',previo:'PPC previo',periodo_art:'PPC art (per)',previo_art:'PPC art (prev)',bi:'BI',sin_datos:'—'};
+  const srcLabel={periodo:'PPC período',previo:'PPC previo',periodo_art:'PPC art (per)',previo_art:'PPC art (prev)',bi:'BI',art_temp:'Art+Temp',sin_datos:'—'};
   document.getElementById('modalSkuTable').innerHTML=topSku.length?`<table class="am-table"><thead><tr><th>SKU</th><th class="td-num">Vend.</th><th class="td-num">Ingreso</th><th class="td-num">Costo u.</th><th class="td-num">Margen</th></tr></thead><tbody>${topSku.map(([sku,d])=>{const c=getCost(sku);const cu=c.value!=null?c.value:0;const m=d.total>0?((d.total-cu*d.qty)/d.total*100).toFixed(0)+'%':'—';return `<tr><td style="font-size:10px">${sku}<span class="ppc-badge ${srcBadge[c.source]||'sin'}">${srcLabel[c.source]||'—'}</span></td><td class="td-num">${Math.round(d.qty)}</td><td class="td-num">$${Math.round(d.total).toLocaleString('es-AR')}</td><td class="td-num">${c.value!=null?'$'+Math.round(c.value).toLocaleString('es-AR'):'—'}</td><td class="td-num">${m}</td></tr>`;}).join('')}</tbody></table>`:'<p class="am-empty">Sin SKUs en el período</p>';
 
   // Últimas 5 compras
