@@ -207,6 +207,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 <div class="tabs-bar">
   <button class="tab-btn active" id="tabPanel" onclick="setVista('panel')">📊 Panel</button>
   <button class="tab-btn" id="tabCmp" onclick="setVista('cmp')">📈 Comparativas</button>
+  <button class="tab-btn" id="tabVend">👥 Vendedoras</button>
 </div>
 
 <main id="vistaPanel">
@@ -387,6 +388,97 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
     <div class="chart-wrap-tall"><canvas id="cmpMargen"></canvas></div>
   </div>
 </main>
+
+<main id="vistaVend" style="display:none">
+
+  <div id="vendAviso" class="cmp-note" style="margin:0 40px 16px;border-left:2px solid var(--accent);background:#d4a85310;padding:10px 14px;display:none"></div>
+
+  <!-- ===== Controles compartidos ===== -->
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header" style="margin-bottom:12px">
+      <div>
+        <div class="chart-title">Vendedoras</div>
+        <div class="chart-subtitle">Pares vendidos por vendedora · presupuestos del local (100%, facturados o no) + Kommo + Tienda Online</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="range-label">Agrupar por</span>
+      <div style="display:flex;gap:4px">
+        <button class="preset-btn" id="btnVendDia">Día</button>
+        <button class="preset-btn" id="btnVendSem">Semana</button>
+        <button class="preset-btn active" id="btnVendMes">Mes</button>
+      </div>
+      <span class="range-label" style="margin-left:8px">Años</span>
+      <div class="ms" id="msVAnio">
+        <button type="button" class="ms-btn" onclick="cmsToggle('VAnio')"><span id="msVAnioLbl">Todos</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('VAnio',true)">Todos</span><span onclick="cmsAll('VAnio',false)">Ninguno</span></div>
+          <div id="msVAnioList"></div>
+        </div>
+      </div>
+      <span class="range-label">Meses</span>
+      <div class="ms" id="msVMes">
+        <button type="button" class="ms-btn" onclick="cmsToggle('VMes')"><span id="msVMesLbl">Todos</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('VMes',true)">Todos</span><span onclick="cmsAll('VMes',false)">Ninguno</span></div>
+          <div id="msVMesList"></div>
+        </div>
+      </div>
+      <span class="range-label">Vendedoras</span>
+      <div class="ms" id="msVVend">
+        <button type="button" class="ms-btn" onclick="cmsToggle('VVend')"><span id="msVVendLbl">Todas</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('VVend',true)">Todas</span><span onclick="cmsAll('VVend',false)">Ninguna</span></div>
+          <div id="msVVendList"></div>
+        </div>
+      </div>
+    </div>
+    <div id="vendResumen" class="cmp-note" style="padding-left:0;padding-right:0"></div>
+  </div>
+
+  <!-- ===== Gráfica 1: pares por vendedora ===== -->
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header">
+      <div><div class="chart-title">Pares vendidos</div><div class="chart-subtitle">Una línea por vendedora · valores absolutos</div></div>
+      <div class="legend" id="vendLeg1"></div>
+    </div>
+    <div class="chart-wrap-tall"><canvas id="vendCant"></canvas></div>
+  </div>
+
+  <!-- ===== Gráfica 2: participación % ===== -->
+  <div class="chart-card chart-full" style="margin-bottom:18px">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Participación sobre el total</div>
+        <div class="chart-subtitle" id="vendPctSub">% de cada vendedora sobre el total del período del eje · el denominador es la suma de los canales seleccionados</div>
+      </div>
+      <div class="legend" id="vendLeg2"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 0 4px">
+      <span class="range-label">Canales del total</span>
+      <label class="ms-item" style="display:inline-flex"><input type="checkbox" id="vcLocal" checked> Local</label>
+      <label class="ms-item" style="display:inline-flex"><input type="checkbox" id="vcTienda" checked> Tienda</label>
+      <label class="ms-item" style="display:inline-flex"><input type="checkbox" id="vcKommo" checked> Kommo</label>
+      <span class="range-label" style="margin-left:10px">Medir en</span>
+      <div style="display:flex;gap:4px">
+        <button class="preset-btn active" id="btnVendPctPares">Pares</button>
+        <button class="preset-btn" id="btnVendPctMonto">$</button>
+      </div>
+    </div>
+    <div class="chart-wrap-tall"><canvas id="vendPct"></canvas></div>
+  </div>
+
+  <!-- ===== Análisis IA ===== -->
+  <div class="ai-card chart-full">
+    <div class="ai-header">
+      <div><div class="chart-title">Análisis de evolución</div><div class="chart-subtitle">Sobre el período y las vendedoras seleccionadas arriba · incluye el % de cada una sobre el total</div></div>
+      <button class="preset-btn" id="btnVendIA">Analizar</button>
+    </div>
+    <div class="ai-summary" id="vendIASummary" style="white-space:pre-wrap">Elegí el período y apretá Analizar.</div>
+  </div>
+
+</main>
+
 
 <!-- ===== MODAL DETALLE ARTÍCULO ===== -->
 <div class="article-modal" id="articleModal" aria-hidden="true">
@@ -637,8 +729,9 @@ function cmsRender(k){
     : '<div class="ms-empty">sin datos</div>';
   cmsLabel(k);
 }
-function cmsChange(k,cb){if(cb.checked)CMS[k].add(cb.value);else CMS[k].delete(cb.value);cmsLabel(k);renderCmp();}
-function cmsAll(k,on){CMS[k].clear();if(on)(CMSOPT[k]||[]).forEach(o=>CMS[k].add(String((typeof o==='object')?o.v:o)));cmsRender(k);renderCmp();}
+function cmsAfter(k){if(String(k).charAt(0)==='V')renderVend();else renderCmp();}
+function cmsChange(k,cb){if(cb.checked)CMS[k].add(cb.value);else CMS[k].delete(cb.value);cmsLabel(k);cmsAfter(k);}
+function cmsAll(k,on){CMS[k].clear();if(on)(CMSOPT[k]||[]).forEach(o=>CMS[k].add(String((typeof o==='object')?o.v:o)));cmsRender(k);cmsAfter(k);}
 function cmsLabel(k){
   const n=CMS[k].size,tot=(CMSOPT[k]||[]).length;const todas=(n===0||n===tot);
   document.getElementById('ms'+k+'Lbl').textContent=todas?(k==='Anio'||k==='Mes'?'Todos':'Todas'):(n===1?[...CMS[k]][0]:n+' sel.');
@@ -670,12 +763,14 @@ function setCmpDim(d){
   renderCmp();
 }
 function setVista(v){
-  const p=(v==='panel');
-  document.getElementById('vistaPanel').style.display=p?'':'none';
-  document.getElementById('vistaCmp').style.display=p?'none':'';
-  document.getElementById('tabPanel').classList.toggle('active',p);
-  document.getElementById('tabCmp').classList.toggle('active',!p);
-  if(!p){poblarCmp();renderCmp();}
+  const vistas={panel:'vistaPanel',cmp:'vistaCmp',vend:'vistaVend'};
+  const tabs={panel:'tabPanel',cmp:'tabCmp',vend:'tabVend'};
+  for(const k in vistas){
+    const m=document.getElementById(vistas[k]);if(m)m.style.display=(k===v)?'':'none';
+    const t=document.getElementById(tabs[k]);if(t)t.classList.toggle('active',k===v);
+  }
+  if(v==='cmp'){poblarCmp();renderCmp();}
+  if(v==='vend'){cargarVendedoras();}
 }
 
 function renderCmp(){
@@ -1155,6 +1250,245 @@ initDates();
 const hadCache=loadCache();
 if(hadCache)setStatus('📦 Cache local',null);
 window.addEventListener('load',()=>{loadAllData();});
+
+// ======================= VENDEDORAS =======================
+// Datos: hoja "Vendedoras" del mismo archivo que Ventas_consolidadas,
+// servida por el webhook del VPS. Columnas FECHA, CANTIDAD, MONTO, VENDEDORA,
+// ya agregadas por dia + vendedora.
+const WEBHOOK_VEND='https://n8n.mahra-ai.online/webhook/vendedoras-data';
+const WEBHOOK_VEND_AI='https://n8n.mahra-ai.online/webhook/vendedoras-ai-analysis';
+
+// El color sigue a la ENTIDAD, nunca al ranking: si un filtro cambia cuantas
+// vendedoras se ven, las que quedan NO cambian de color.
+// Paleta validada para daltonismo sobre fondo oscuro (separacion CVD y contraste).
+const VEND_COLOR={
+  'Ana Bosc':'#3987e5','Emilia Rigo':'#d95926','Ludmila Borguetto':'#199e70',
+  'Yamila Ucedo':'#c98500','Kommo':'#d55181','Tienda Online':'#9085e9',
+  'Vale':'#008300','(sin vendedora)':'#8a8680'};
+const VEND_ORDEN=['Ana Bosc','Emilia Rigo','Ludmila Borguetto','Yamila Ucedo','Vale','(sin vendedora)','Kommo','Tienda Online'];
+const VEND_CANAL={
+  'Ana Bosc':'local','Emilia Rigo':'local','Ludmila Borguetto':'local','Yamila Ucedo':'local',
+  'Vale':'local','(sin vendedora)':'local','Kommo':'kommo','Tienda Online':'tienda'};
+// Los presupuestos (y por lo tanto las vendedoras del local) arrancan el 19/2/2026,
+// cuando se empezo a usar EcommApp. Antes de eso solo hay Tienda Online.
+const VEND_ANIO_DESDE=2026;
+
+let rawVend=[],vendCargado=false,vendGran='mes',vendPctMetrica='pares';
+
+function vendColor(v){return VEND_COLOR[v]||'#8a8680';}
+function vendCanal(v){return VEND_CANAL[v]||'local';}
+function vendSort(a,b){const ia=VEND_ORDEN.indexOf(a),ib=VEND_ORDEN.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);}
+
+async function cargarVendedoras(){
+  if(vendCargado){renderVend();return;}
+  const res=document.getElementById('vendResumen');
+  res.textContent='Cargando hoja Vendedoras…';
+  try{
+    const r=await fetch(WEBHOOK_VEND);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    const filas=Array.isArray(data)?data:(data.data||[]);
+    rawVend=filas.map(f=>{
+      const d=parseDate(f.FECHA);
+      return d?{d,vend:String(f.VENDEDORA||'(sin vendedora)').trim(),
+                cant:parseNum(f.CANTIDAD),monto:parseNum(f.MONTO)}:null;
+    }).filter(Boolean);
+    vendCargado=true;
+    poblarVend();
+    renderVend();
+  }catch(e){
+    res.innerHTML='<span style="color:var(--accent3)">No se pudo leer la hoja Vendedoras: '+e.message+'</span>';
+  }
+}
+
+function poblarVend(){
+  const anios=[...new Set(rawVend.map(r=>r.d.getFullYear()))].sort((a,b)=>b-a);
+  const vends=[...new Set(rawVend.map(r=>r.vend))].sort(vendSort);
+  CMSOPT.VAnio=anios.map(String);
+  CMSOPT.VMes=MESES.map((m,i)=>({v:String(i+1),lab:m}));
+  CMSOPT.VVend=vends;
+  CMS.VAnio=new Set();CMS.VMes=new Set();CMS.VVend=new Set();
+  // Arranca en 2026: antes de eso solo hay Tienda Online y el 100% seria falso.
+  const previos=anios.filter(a=>a<VEND_ANIO_DESDE);
+  if(previos.length){
+    anios.filter(a=>a>=VEND_ANIO_DESDE).forEach(a=>CMS.VAnio.add(String(a)));
+    const av=document.getElementById('vendAviso');
+    av.style.display='block';
+    av.innerHTML='<b>Ojo con los años anteriores a '+VEND_ANIO_DESDE+'.</b> Las vendedoras del local salen de los presupuestos de EcommApp, que arrancan el 19/2/2026. '+
+      'En '+previos.join(', ')+' solo hay datos de Tienda Online, así que si los marcás vas a ver a Tienda Online al 100% — y eso no es que vendió todo, es que del resto no hay registro. Vienen desmarcados a propósito.';
+  }
+  ['VAnio','VMes','VVend'].forEach(k=>{cmsRender(k);cmsLabel(k);});
+}
+
+function vendKey(d){
+  if(vendGran==='dia')return d.toISOString().slice(0,10);
+  if(vendGran==='semana')return getWeekKey(d);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function vendKeyLabel(k){
+  if(vendGran==='mes'){const p=k.split('-');return MESES[+p[1]-1]+' '+p[0].slice(2);}
+  const p=k.split('-');return p[2]+'/'+p[1]+(vendGran==='semana'?'':'');
+}
+
+// Filtra por año y mes. NO filtra por vendedora: eso se aplica despues, porque
+// la gráfica de % necesita el total del canal aunque se muestre una sola linea.
+function vendFiltradas(){
+  const fA=cmsSel('VAnio'),fM=cmsSel('VMes');
+  return rawVend.filter(r=>{
+    if(fA.length&&fA.indexOf(String(r.d.getFullYear()))<0)return false;
+    if(fM.length&&fM.indexOf(String(r.d.getMonth()+1))<0)return false;
+    return true;
+  });
+}
+function vendCanalesSel(){
+  const c=[];
+  if(document.getElementById('vcLocal').checked)c.push('local');
+  if(document.getElementById('vcTienda').checked)c.push('tienda');
+  if(document.getElementById('vcKommo').checked)c.push('kommo');
+  return c;
+}
+
+function setVendGran(g){
+  vendGran=g;
+  document.getElementById('btnVendDia').classList.toggle('active',g==='dia');
+  document.getElementById('btnVendSem').classList.toggle('active',g==='semana');
+  document.getElementById('btnVendMes').classList.toggle('active',g==='mes');
+  renderVend();
+}
+function setVendPctMetrica(m){
+  vendPctMetrica=m;
+  document.getElementById('btnVendPctPares').classList.toggle('active',m==='pares');
+  document.getElementById('btnVendPctMonto').classList.toggle('active',m==='monto');
+  renderVend();
+}
+
+function vendPinta(canvasId,key,datasets,labels,fmtTip,fmtEje,pct){
+  if(charts[key])charts[key].destroy();
+  charts[key]=new Chart(document.getElementById(canvasId),{
+    type:'line',
+    data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,
+          titleColor:'#f0ede8',bodyColor:'#9a9690',
+          callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtTip(ctx.parsed.y)}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},maxRotation:0,autoSkip:true,maxTicksLimit:14}},
+              y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:fmtEje},beginAtZero:true,max:pct?100:undefined}}}
+  });
+}
+function vendLeyenda(elId,nombres){
+  document.getElementById(elId).innerHTML=nombres.map(n=>
+    `<div class="legend-item"><div class="legend-dot" style="background:${vendColor(n)}"></div>${n}</div>`).join('');
+}
+
+function renderVend(){
+  if(!vendCargado)return;
+  const filas=vendFiltradas();
+  const fV=cmsSel('VVend');
+  const canales=vendCanalesSel();
+  const fmtU=n=>Math.round(n).toLocaleString('es-AR');
+
+  // buckets ordenados cronologicamente
+  const keys=[...new Set(filas.map(r=>vendKey(r.d)))].sort();
+  const labels=keys.map(vendKeyLabel);
+
+  // acumulador: vendedora -> key -> {cant, monto}
+  const acc={};
+  filas.forEach(r=>{
+    const k=vendKey(r.d);
+    (acc[r.vend]=acc[r.vend]||{})[k]=acc[r.vend][k]||{cant:0,monto:0};
+    acc[r.vend][k].cant+=r.cant;acc[r.vend][k].monto+=r.monto;
+  });
+
+  // ---------- Gráfica 1: pares por vendedora ----------
+  const vends1=Object.keys(acc).filter(v=>!fV.length||fV.indexOf(v)>=0).sort(vendSort);
+  const ds1=vends1.map(v=>({label:v,borderColor:vendColor(v),backgroundColor:vendColor(v)+'20',
+    tension:.3,fill:false,pointRadius:2,pointHoverRadius:5,borderWidth:2,spanGaps:true,
+    data:keys.map(k=>acc[v][k]?acc[v][k].cant:null)}));
+  vendPinta('vendCant','vendCant',ds1,labels,v=>fmtU(v)+' pares',v=>fmtU(v),false);
+  vendLeyenda('vendLeg1',vends1);
+
+  // ---------- Gráfica 2: participación % ----------
+  // El denominador es el total de los canales seleccionados en ese bucket,
+  // aunque se muestre una sola vendedora. Asi el % no se infla al filtrar.
+  const enCanal=v=>canales.indexOf(vendCanal(v))>=0;
+  const campo=vendPctMetrica==='monto'?'monto':'cant';
+  const denom={};
+  keys.forEach(k=>{denom[k]=0;});
+  Object.keys(acc).forEach(v=>{if(!enCanal(v))return;
+    keys.forEach(k=>{if(acc[v][k])denom[k]+=acc[v][k][campo];});});
+  const vends2=vends1.filter(enCanal);
+  const ds2=vends2.map(v=>({label:v,borderColor:vendColor(v),backgroundColor:vendColor(v)+'20',
+    tension:.3,fill:false,pointRadius:2,pointHoverRadius:5,borderWidth:2,spanGaps:true,
+    data:keys.map(k=>{const d=denom[k];if(!d)return null;const n=acc[v][k]?acc[v][k][campo]:0;return Math.round(n/d*1000)/10;})}));
+  vendPinta('vendPct','vendPct',ds2,labels,v=>v.toFixed(1)+'%',v=>v+'%',true);
+  vendLeyenda('vendLeg2',vends2);
+  document.getElementById('vendPctSub').textContent=
+    '% de cada vendedora sobre el total del '+(vendGran==='dia'?'día':vendGran==='semana'?'semana':'mes')+
+    ' · denominador = '+(canales.length?canales.join(' + '):'ningún canal')+
+    ' · medido en '+(vendPctMetrica==='monto'?'pesos':'pares');
+
+  // ---------- Resumen ----------
+  let totC=0,totM=0;
+  vends1.forEach(v=>keys.forEach(k=>{if(acc[v][k]){totC+=acc[v][k].cant;totM+=acc[v][k].monto;}}));
+  const rango=keys.length?(vendKeyLabel(keys[0])+' → '+vendKeyLabel(keys[keys.length-1])):'sin datos';
+  document.getElementById('vendResumen').innerHTML=
+    keys.length? `${vends1.length} vendedora(s) · ${keys.length} período(s) · ${rango} · <b>${fmtU(totC)} pares</b> · <b>$${fmtU(totM)}</b>`
+      : 'No hay datos para los filtros elegidos.';
+  window._vendCtx={acc,keys,vends1,vends2,denom,campo,canales,rango,totC,totM};
+}
+
+async function analizarVendedoras(){
+  const box=document.getElementById('vendIASummary');
+  const ctx=window._vendCtx;
+  if(!ctx||!ctx.keys.length){box.textContent='No hay datos en el recorte elegido.';return;}
+  box.textContent='Generando análisis…';
+  const fmtU=n=>Math.round(n);
+  // Totales y % por vendedora sobre el total del recorte
+  const porVend=ctx.vends1.map(v=>{
+    let c=0,m=0;ctx.keys.forEach(k=>{if(ctx.acc[v][k]){c+=ctx.acc[v][k].cant;m+=ctx.acc[v][k].monto;}});
+    return{vendedora:v,canal:vendCanal(v),pares:fmtU(c),monto:fmtU(m),
+      pct_pares:ctx.totC?+(c/ctx.totC*100).toFixed(1):0,
+      pct_monto:ctx.totM?+(m/ctx.totM*100).toFixed(1):0};
+  }).sort((a,b)=>b.pares-a.pares);
+  // Evolucion: ultimos 24 periodos como maximo, para no mandar un payload enorme
+  const kEvo=ctx.keys.slice(-24);
+  const evolucion={};
+  ctx.vends1.forEach(v=>{
+    evolucion[v]=kEvo.map(k=>({periodo:vendKeyLabel(k),
+      pares:ctx.acc[v][k]?fmtU(ctx.acc[v][k].cant):0,
+      pct_del_periodo:ctx.denom[k]&&ctx.acc[v][k]?+(ctx.acc[v][k][ctx.campo]/ctx.denom[k]*100).toFixed(1):0}));
+  });
+  const resumen={periodo:ctx.rango,granularidad:vendGran,
+    canales_del_denominador:ctx.canales,metrica_del_porcentaje:ctx.campo==='monto'?'pesos':'pares',
+    total_pares:fmtU(ctx.totC),total_monto:fmtU(ctx.totM),
+    por_vendedora:porVend,evolucion};
+  try{
+    const r=await fetch(WEBHOOK_VEND_AI,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({resumen})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    box.textContent=(j&&j.texto)?j.texto:'La IA no devolvió texto.';
+  }catch(e){
+    box.textContent='No se pudo generar el análisis: '+e.message;
+  }
+}
+
+// Botones por addEventListener (el panel de Cowork bloquea los onclick inline)
+document.addEventListener('DOMContentLoaded',()=>{
+  const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener('click',fn);};
+  on('btnVendDia',()=>setVendGran('dia'));
+  on('btnVendSem',()=>setVendGran('semana'));
+  on('btnVendMes',()=>setVendGran('mes'));
+  on('btnVendPctPares',()=>setVendPctMetrica('pares'));
+  on('btnVendPctMonto',()=>setVendPctMetrica('monto'));
+  on('btnVendIA',analizarVendedoras);
+  on('tabVend',()=>setVista('vend'));
+  ['vcLocal','vcTienda','vcKommo'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.addEventListener('change',renderVend);});
+});
+
 </script>
 </body>
 </html>
