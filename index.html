@@ -866,7 +866,10 @@ function renderAll(){
 function renderScorecards(ventas){
   const totalV=ventas.reduce((s,r)=>s+parseNum(r.total),0);
   const totalQty=ventas.reduce((s,r)=>s+parseNum(r.cantidad),0);
-  const ticket=ventas.length?totalV/ventas.length:0;
+  // Ticket promedio POR ARTÍCULO = ingresos / unidades vendidas.
+  // Antes dividía por ventas.length (nº de FILAS de la hoja), que incluye
+  // filas de cantidad 0 o negativa y por eso daba un valor más bajo del real.
+  const ticket=totalQty>0?totalV/totalQty:0;
   let totalC=0,qtyConCosto=0,qtySinCosto=0;
   ventas.forEach(r=>{
     const cant=parseNum(r.cantidad);
