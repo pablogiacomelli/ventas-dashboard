@@ -150,6 +150,31 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 .ms-item:hover{background:var(--surface2)}
 .ms-item input{cursor:pointer;accent-color:#d4a853}
 .ms-empty{color:var(--muted2);font-size:11px;font-family:var(--font-mono);padding:6px}
+/* ===== CLIENTAS ===== */
+.cli-login{max-width:380px;margin:40px auto;background:var(--surface);border:1px solid var(--border2);padding:28px}
+.cli-login h2{font-family:var(--font-display);font-weight:300;font-size:20px;margin-bottom:6px}
+.cli-login p{font-size:11px;color:var(--muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:18px}
+.cli-login label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--font-mono);margin:10px 0 4px}
+.cli-login input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 10px;outline:none}
+.cli-login input:focus{border-color:var(--accent)}
+.cli-login .btn-load{margin:18px 0 0;width:100%}
+.cli-error{color:var(--accent3);font-size:11px;font-family:var(--font-mono);margin-top:10px;min-height:14px}
+.cli-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.cli-bar input[type=search]{min-width:240px;cursor:text}
+.cli-tabla{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--font-mono)}
+.cli-tabla th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);padding:8px;border-bottom:1px solid var(--border2);font-weight:400;cursor:pointer;white-space:nowrap;position:sticky;top:0;background:var(--surface)}
+.cli-tabla th:hover{color:var(--accent)}
+.cli-tabla td{padding:8px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+.cli-tabla td.num{text-align:right;font-variant-numeric:tabular-nums}
+.cli-tabla tr.cli-row{cursor:pointer}
+.cli-tabla tr.cli-row:hover td{background:rgba(212,168,83,.06)}
+.cli-scroll{max-height:620px;overflow:auto;border:1px solid var(--border)}
+.cli-canal{display:inline-block;font-size:9px;padding:2px 6px;border-radius:2px;letter-spacing:.05em}
+.cli-falta{color:var(--accent3)}
+.cli-ok{color:var(--accent4)}
+.cli-mas{display:block;margin:14px auto 0}
+.cli-sesion{font-size:10px;color:var(--muted2);font-family:var(--font-mono);margin-left:auto}
+.cli-sesion a{color:var(--accent);cursor:pointer;text-decoration:underline}
 .cmp-note{font-size:10px;color:var(--muted2);font-family:var(--font-mono);padding:10px 40px 0;line-height:1.6}
 </style>
 </head>
@@ -208,6 +233,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
   <button class="tab-btn active" id="tabPanel" onclick="setVista('panel')">📊 Panel</button>
   <button class="tab-btn" id="tabCmp" onclick="setVista('cmp')">📈 Comparativas</button>
   <button class="tab-btn" id="tabVend">👥 Vendedoras</button>
+  <button class="tab-btn" id="tabCli">🛍️ Clientas</button>
 </div>
 
 <main id="vistaPanel">
@@ -481,6 +507,87 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 
 
 <!-- ===== MODAL DETALLE ARTÍCULO ===== -->
+<main id="vistaCli" style="display:none">
+
+  <!-- Login: los datos de clientas son personales, solo se ven con usuario del panel -->
+  <div id="cliLogin" class="cli-login" style="display:none">
+    <h2>Clientas</h2>
+    <p>Esta pestaña tiene teléfonos y mails de las clientas. Entrá con el usuario y la contraseña del panel de pedidos.</p>
+    <label for="cliUsuario">Usuario</label>
+    <input id="cliUsuario" autocomplete="username">
+    <label for="cliClave">Contraseña</label>
+    <input id="cliClave" type="password" autocomplete="current-password">
+    <button class="btn-load" id="btnCliEntrar">Entrar</button>
+    <div class="cli-error" id="cliError"></div>
+  </div>
+
+  <div id="cliContenido" style="display:none">
+    <div class="cli-bar">
+      <span class="range-label">Canal</span>
+      <select class="date-input" id="cliCanal">
+        <option value="">Todos</option>
+        <option value="LOCAL FISICO">Local físico</option>
+        <option value="CRM KOMMO">CRM Kommo</option>
+        <option value="VALE AI">Vale AI</option>
+      </select>
+      <span class="range-label" style="margin-left:8px">Datos</span>
+      <select class="date-input" id="cliFalta">
+        <option value="">Todas</option>
+        <option value="completa">Completas</option>
+        <option value="tel">Sin teléfono</option>
+        <option value="mail">Sin mail</option>
+        <option value="ninguno">Sin teléfono ni mail</option>
+        <option value="revisar">Con algo para revisar</option>
+      </select>
+      <span class="range-label" style="margin-left:8px">Compras</span>
+      <select class="date-input" id="cliFrec">
+        <option value="">Todas</option>
+        <option value="1">1 compra</option>
+        <option value="2">2 o más</option>
+        <option value="4">4 o más</option>
+      </select>
+      <input type="search" class="date-input" id="cliBuscar" placeholder="Buscar nombre, DNI, teléfono o mail">
+      <button class="preset-btn" id="btnCliCsv" title="Descarga las clientas filtradas">⬇ CSV</button>
+      <span class="cli-sesion" id="cliSesion"></span>
+    </div>
+
+    <div class="scorecards" id="cliScores"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">Monto por canal</div>
+          <div class="chart-subtitle">Local físico · CRM Kommo (vendedora Kommo) · Vale AI (vendedora ventasmahra)</div></div></div>
+        <div class="chart-wrap"><canvas id="cliChartCanal"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">Clientas por cantidad de compras</div>
+          <div class="chart-subtitle">Cuántas compraron una vez y cuántas volvieron</div></div></div>
+        <div class="chart-wrap"><canvas id="cliChartFrec"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card chart-full">
+      <div class="chart-header"><div><div class="chart-title">Clientas</div>
+        <div class="chart-subtitle" id="cliTablaSub"></div></div></div>
+      <div class="cli-scroll"><table class="cli-tabla" id="cliTabla"></table></div>
+      <button class="preset-btn cli-mas" id="btnCliMas" style="display:none">Ver más</button>
+    </div>
+    <div class="cmp-note" style="padding-left:0">Fuente: presupuestos de EcommApp desde el 27/07 y presupuestos + facturas antes de esa fecha (sin Tienda Nube). Consumidor Final no figura como clienta. Se actualiza al correr el flujo "ZZ SHEET - Clientas y compras".</div>
+  </div>
+  <div class="cmp-note" id="cliEstado" style="padding-left:0"></div>
+</main>
+
+<div class="article-modal" id="cliModal" aria-hidden="true">
+  <div class="am-backdrop" id="cliModalFondo"></div>
+  <div class="am-panel">
+    <div class="am-header">
+      <div><div class="am-eyebrow">Historial de compras</div><div class="am-title" id="cliModalTitulo"></div></div>
+      <button class="am-close" id="cliModalCerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div id="cliModalCuerpo"></div>
+  </div>
+</div>
+
 <div class="article-modal" id="articleModal" aria-hidden="true">
   <div class="am-backdrop" onclick="closeArticleModal()"></div>
   <div class="am-panel">
@@ -765,14 +872,15 @@ function setCmpDim(d){
   renderCmp();
 }
 function setVista(v){
-  const vistas={panel:'vistaPanel',cmp:'vistaCmp',vend:'vistaVend'};
-  const tabs={panel:'tabPanel',cmp:'tabCmp',vend:'tabVend'};
+  const vistas={panel:'vistaPanel',cmp:'vistaCmp',vend:'vistaVend',cli:'vistaCli'};
+  const tabs={panel:'tabPanel',cmp:'tabCmp',vend:'tabVend',cli:'tabCli'};
   for(const k in vistas){
     const m=document.getElementById(vistas[k]);if(m)m.style.display=(k===v)?'':'none';
     const t=document.getElementById(tabs[k]);if(t)t.classList.toggle('active',k===v);
   }
   if(v==='cmp'){poblarCmp();renderCmp();}
   if(v==='vend'){cargarVendedoras();}
+  if(v==='cli'){cargarClientas();}
 }
 
 function renderCmp(){
@@ -1493,6 +1601,218 @@ document.addEventListener('DOMContentLoaded',()=>{
     const el=document.getElementById(id);if(el)el.addEventListener('change',renderVend);});
 });
 
+
+// ======================= CLIENTAS =======================
+// Datos personales: el webhook clientas-data solo responde con una sesion valida
+// del panel (login en panel-acceso, token de 30 dias). El token se guarda en
+// localStorage; los datos de clientas NO se cachean en el navegador.
+const WEBHOOK_LOGIN='https://n8n.mahra-ai.online/webhook/panel-acceso';
+const WEBHOOK_CLI='https://n8n.mahra-ai.online/webhook/clientas-data';
+const CLI_TOKEN_KEY='mahra_panel_token';
+// Mismos colores que en Vendedoras: Kommo y Vale conservan su color.
+const CLI_CANAL_COLOR={'LOCAL FISICO':'#7ba8cc','CRM KOMMO':'#d55181','VALE AI':'#008300'};
+const CLI_CANAL_NOMBRE={'LOCAL FISICO':'Local físico','CRM KOMMO':'CRM Kommo','VALE AI':'Vale AI'};
+let cliDatos=null,cliCompras=[],cliFiltradas=[],cliOrden={col:'monto',dir:-1},cliMostrar=100,cliCharts={};
+
+function cliEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function cliLeerToken(){try{const t=JSON.parse(localStorage.getItem(CLI_TOKEN_KEY)||'null');if(t&&t.token&&new Date(t.vence).getTime()>Date.now())return t;}catch(e){}return null;}
+function cliGuardarToken(t){try{localStorage.setItem(CLI_TOKEN_KEY,JSON.stringify(t));}catch(e){}}
+function cliBorrarToken(){try{localStorage.removeItem(CLI_TOKEN_KEY);}catch(e){}}
+function cliFecha(s){const p=String(s||'').slice(0,10).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(s||'');}
+
+function cliMostrarLogin(msg){
+  document.getElementById('cliLogin').style.display='';
+  document.getElementById('cliContenido').style.display='none';
+  document.getElementById('cliError').textContent=msg||'';
+  document.getElementById('cliEstado').textContent='';
+}
+
+async function cliEntrar(){
+  const u=document.getElementById('cliUsuario').value.trim(),c=document.getElementById('cliClave').value;
+  const err=document.getElementById('cliError');
+  if(!u||!c){err.textContent='Completá usuario y contraseña.';return;}
+  err.textContent='Entrando…';
+  try{
+    const r=await fetch(WEBHOOK_LOGIN,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({usuario:u,clave:c})});
+    const j=await r.json();
+    if(!j||!j.ok){err.textContent=(j&&j.error)||'Usuario o contraseña incorrectos';return;}
+    cliGuardarToken({token:j.token,usuario:j.usuario,vence:j.vence});
+    document.getElementById('cliClave').value='';
+    cliDatos=null;cargarClientas();
+  }catch(e){err.textContent='No se pudo conectar: '+e.message;}
+}
+
+function cliSalir(){cliBorrarToken();cliDatos=null;cliCompras=[];cliMostrarLogin('');}
+
+async function cargarClientas(){
+  const t=cliLeerToken();
+  if(!t){cliMostrarLogin('');return;}
+  if(cliDatos){cliMostrarContenido(t);renderClientas();return;}
+  document.getElementById('cliLogin').style.display='none';
+  const est=document.getElementById('cliEstado');est.textContent='Cargando clientas…';
+  try{
+    const r=await fetch(WEBHOOK_CLI,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({token:t.token})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(!j||!j.ok){cliBorrarToken();cliMostrarLogin('La sesión venció. Volvé a entrar.');return;}
+    const ix=(cab,nombre)=>cab.indexOf(nombre);
+    const cc=j.cab_clientas||[];
+    const I={nombre:ix(cc,'Clienta'),doc:ix(cc,'DNI/CUIT'),tel:ix(cc,'Teléfono'),mail:ix(cc,'Mail'),ciudad:ix(cc,'Ciudad'),
+      compras:ix(cc,'Cantidad de compras'),monto:ix(cc,'Monto acumulado'),ticket:ix(cc,'Ticket promedio'),canal:ix(cc,'Canal principal'),
+      mLocal:ix(cc,'Monto Local físico'),mKommo:ix(cc,'Monto CRM Kommo'),mVale:ix(cc,'Monto Vale AI'),
+      primera:ix(cc,'Primera compra'),ultima:ix(cc,'Última compra'),falta:ix(cc,'Qué falta'),revisar:ix(cc,'Revisar')};
+    const v=(f,k)=>I[k]>=0?f[I[k]]:'';
+    cliDatos=(j.clientas||[]).map(f=>({nombre:String(v(f,'nombre')||''),doc:String(v(f,'doc')||''),tel:String(v(f,'tel')||''),mail:String(v(f,'mail')||''),
+      ciudad:String(v(f,'ciudad')||''),compras:parseNum(v(f,'compras')),monto:parseNum(v(f,'monto')),ticket:parseNum(v(f,'ticket')),
+      canal:String(v(f,'canal')||''),porCanal:{'LOCAL FISICO':parseNum(v(f,'mLocal')),'CRM KOMMO':parseNum(v(f,'mKommo')),'VALE AI':parseNum(v(f,'mVale'))},
+      primera:String(v(f,'primera')||''),ultima:String(v(f,'ultima')||''),falta:String(v(f,'falta')||''),revisar:String(v(f,'revisar')||'')}));
+    const ck=j.cab_compras||[];
+    const K={fecha:ix(ck,'Fecha'),nombre:ix(ck,'Clienta'),doc:ix(ck,'DNI/CUIT'),tipo:ix(ck,'Tipo'),numero:ix(ck,'Número'),monto:ix(ck,'Monto'),
+      pago:ix(ck,'Forma de pago'),vend:ix(ck,'Vendedora'),canal:ix(ck,'Canal'),obs:ix(ck,'Observación')};
+    cliCompras=(j.compras||[]).map(f=>({fecha:String(f[K.fecha]||''),nombre:String(f[K.nombre]||''),doc:String(f[K.doc]||''),tipo:String(f[K.tipo]||''),
+      numero:String(f[K.numero]||''),monto:parseNum(f[K.monto]),pago:String(f[K.pago]||''),vend:String(f[K.vend]||''),canal:String(f[K.canal]||''),obs:String(f[K.obs]||'')}));
+    est.textContent='';
+    cliMostrarContenido(t);
+    renderClientas();
+  }catch(e){est.textContent='No se pudieron cargar las clientas: '+e.message;}
+}
+
+function cliMostrarContenido(t){
+  document.getElementById('cliLogin').style.display='none';
+  document.getElementById('cliContenido').style.display='';
+  document.getElementById('cliSesion').innerHTML='Sesión: '+cliEsc(t.usuario)+' · <a id="lnkCliSalir">Salir</a>';
+  const s=document.getElementById('lnkCliSalir');if(s)s.addEventListener('click',cliSalir);
+}
+
+function cliMonto(c,canal){return canal?(c.porCanal[canal]||0):c.monto;}
+
+function cliFiltrar(){
+  const canal=document.getElementById('cliCanal').value,falta=document.getElementById('cliFalta').value,
+    frec=document.getElementById('cliFrec').value,q=document.getElementById('cliBuscar').value.trim().toLowerCase();
+  const qd=q.replace(/[^0-9]/g,'');
+  return cliDatos.filter(c=>{
+    if(canal&&!(c.porCanal[canal]>0))return false;
+    if(falta==='completa'&&c.falta!=='Completa')return false;
+    if(falta==='tel'&&c.falta.indexOf('Teléfono')<0)return false;
+    if(falta==='mail'&&c.falta.indexOf('Mail')<0)return false;
+    if(falta==='ninguno'&&!(c.falta.indexOf('Teléfono')>=0&&c.falta.indexOf('Mail')>=0))return false;
+    if(falta==='revisar'&&!c.revisar)return false;
+    if(frec&&c.compras<Number(frec))return false;
+    if(frec==='1'&&c.compras!==1)return false;
+    if(q){const txt=(c.nombre+' '+c.mail+' '+c.ciudad).toLowerCase();
+      const dig=(c.doc+' '+c.tel).replace(/[^0-9 ]/g,'');
+      if(txt.indexOf(q)<0&&!(qd.length>=3&&dig.indexOf(qd)>=0))return false;}
+    return true;
+  });
+}
+
+function renderClientas(){
+  if(!cliDatos)return;
+  const canal=document.getElementById('cliCanal').value;
+  cliFiltradas=cliFiltrar();
+  const col=cliOrden.col,dir=cliOrden.dir;
+  cliFiltradas.sort((a,b)=>{
+    const va=col==='monto'?cliMonto(a,canal):a[col],vb=col==='monto'?cliMonto(b,canal):b[col];
+    if(typeof va==='number')return (va-vb)*dir;
+    return String(va).localeCompare(String(vb))*dir;
+  });
+  // Scorecards
+  const n=cliFiltradas.length,total=cliFiltradas.reduce((s,c)=>s+cliMonto(c,canal),0);
+  const compras=cliFiltradas.reduce((s,c)=>s+c.compras,0);
+  const recompra=n?cliFiltradas.filter(c=>c.compras>=2).length/n*100:0;
+  const completas=n?cliFiltradas.filter(c=>c.falta==='Completa').length/n*100:0;
+  const sinContacto=cliFiltradas.filter(c=>c.falta.indexOf('Teléfono')>=0&&c.falta.indexOf('Mail')>=0).length;
+  const sc=[['Clientas',n.toLocaleString('es-AR'),canal?'que compraron por '+CLI_CANAL_NOMBRE[canal]:'con al menos una compra'],
+    ['Monto acumulado',fmtARS(total),fmtARSFull(total)],
+    ['Ticket promedio',compras?fmtARS(total/compras):'$0',compras.toLocaleString('es-AR')+' compras'],
+    ['Recompra',recompra.toFixed(1)+'%','compraron 2 veces o más'],
+    ['Datos completos',completas.toFixed(1)+'%','con teléfono, mail y DNI'],
+    ['Sin contacto',sinContacto.toLocaleString('es-AR'),'sin teléfono ni mail']];
+  document.getElementById('cliScores').innerHTML=sc.map(x=>'<div class="scorecard"><div class="sc-label">'+x[0]+'</div><div class="sc-value">'+x[1]+'</div><div class="sc-sub">'+x[2]+'</div></div>').join('');
+  // Graficos
+  const canales=['LOCAL FISICO','CRM KOMMO','VALE AI'];
+  const montos=canales.map(k=>cliFiltradas.reduce((s,c)=>s+(c.porCanal[k]||0),0));
+  const cant=canales.map(k=>cliFiltradas.filter(c=>c.porCanal[k]>0).length);
+  cliGrafico('cliChartCanal',{type:'bar',data:{labels:canales.map(k=>CLI_CANAL_NOMBRE[k]),datasets:[{label:'Monto',data:montos,backgroundColor:canales.map(k=>CLI_CANAL_COLOR[k])}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtARSFull(ctx.raw)+' · '+cant[ctx.dataIndex].toLocaleString('es-AR')+' clientas'}}},
+      scales:{x:{ticks:{color:'#9a9690'},grid:{display:false}},y:{ticks:{color:'#9a9690',callback:v=>fmtARS(v)},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  const buckets=['1','2','3','4-5','6+'],bc=[0,0,0,0,0];
+  cliFiltradas.forEach(c=>{const k=c.compras;bc[k<=1?0:k===2?1:k===3?2:k<=5?3:4]++;});
+  cliGrafico('cliChartFrec',{type:'bar',data:{labels:buckets.map(b=>b+(b==='1'?' compra':' compras')),datasets:[{label:'Clientas',data:bc,backgroundColor:'#d4a853'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#9a9690'},grid:{display:false}},y:{ticks:{color:'#9a9690'},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  renderCliTabla();
+}
+
+function cliGrafico(id,cfg){if(cliCharts[id])cliCharts[id].destroy();cliCharts[id]=new Chart(document.getElementById(id),cfg);}
+
+function renderCliTabla(){
+  const canal=document.getElementById('cliCanal').value;
+  const cols=[['nombre','Clienta'],['doc','DNI/CUIT'],['tel','Teléfono'],['mail','Mail'],['ciudad','Ciudad'],['compras','Compras'],['monto',canal?'Monto '+CLI_CANAL_NOMBRE[canal]:'Monto'],['ticket','Ticket'],['canal','Canal principal'],['ultima','Última compra'],['falta','Qué falta']];
+  const flecha=k=>cliOrden.col===k?(cliOrden.dir<0?' ▼':' ▲'):'';
+  let h='<thead><tr>'+cols.map(c=>'<th data-col="'+c[0]+'">'+c[1]+flecha(c[0])+'</th>').join('')+'</tr></thead><tbody>';
+  cliFiltradas.slice(0,cliMostrar).forEach((c,i)=>{
+    const canalBase=c.canal.replace(' + otros','');
+    const color=CLI_CANAL_COLOR[canalBase]||'#8a8680';
+    h+='<tr class="cli-row" data-i="'+i+'"><td>'+cliEsc(c.nombre)+'</td><td>'+cliEsc(c.doc)+'</td><td>'+cliEsc(c.tel)+'</td><td>'+cliEsc(c.mail)+'</td><td>'+cliEsc(c.ciudad)+'</td>'
+      +'<td class="num">'+c.compras+'</td><td class="num">'+fmtARSFull(cliMonto(c,canal))+'</td><td class="num">'+fmtARSFull(c.ticket)+'</td>'
+      +'<td><span class="cli-canal" style="background:'+color+'30;color:'+color+'">'+cliEsc(CLI_CANAL_NOMBRE[canalBase]||c.canal)+(c.canal.indexOf('+')>=0?' +':'')+'</span></td>'
+      +'<td>'+cliEsc(cliFecha(c.ultima))+'</td><td class="'+(c.falta==='Completa'?'cli-ok':'cli-falta')+'">'+cliEsc(c.falta)+'</td></tr>';
+  });
+  h+='</tbody>';
+  const t=document.getElementById('cliTabla');t.innerHTML=h;
+  t.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{const k=th.getAttribute('data-col');
+    cliOrden=cliOrden.col===k?{col:k,dir:-cliOrden.dir}:{col:k,dir:(k==='nombre'||k==='ciudad'||k==='canal'||k==='falta')?1:-1};renderClientas();}));
+  t.querySelectorAll('tr.cli-row').forEach(tr=>tr.addEventListener('click',()=>cliAbrir(cliFiltradas[Number(tr.getAttribute('data-i'))])));
+  document.getElementById('cliTablaSub').textContent='Mostrando '+Math.min(cliMostrar,cliFiltradas.length).toLocaleString('es-AR')+' de '+cliFiltradas.length.toLocaleString('es-AR')+' · clic en una fila para ver sus compras · clic en un título para ordenar';
+  document.getElementById('btnCliMas').style.display=cliFiltradas.length>cliMostrar?'':'none';
+}
+
+function cliAbrir(c){
+  if(!c)return;
+  const compras=cliCompras.filter(x=>(c.doc&&x.doc===c.doc)||(!c.doc&&x.nombre===c.nombre)).sort((a,b)=>a.fecha<b.fecha?1:-1);
+  document.getElementById('cliModalTitulo').innerHTML=cliEsc(c.nombre)+(c.doc?' <em>'+cliEsc(c.doc)+'</em>':'');
+  let h='<div class="am-kpis"><div class="am-kpi"><div class="am-kpi-label">Compras</div><div class="am-kpi-value">'+c.compras+'</div><div class="am-kpi-sub">desde '+cliEsc(cliFecha(c.primera))+'</div></div>'
+    +'<div class="am-kpi"><div class="am-kpi-label">Monto</div><div class="am-kpi-value">'+fmtARS(c.monto)+'</div><div class="am-kpi-sub">ticket '+fmtARS(c.ticket)+'</div></div>'
+    +'<div class="am-kpi"><div class="am-kpi-label">Última</div><div class="am-kpi-value">'+cliEsc(cliFecha(c.ultima))+'</div><div class="am-kpi-sub">'+cliEsc((CLI_CANAL_NOMBRE[c.canal.replace(' + otros','')]||c.canal)+(c.canal.indexOf('+')>=0?' + otros':''))+'</div></div></div>';
+  h+='<div class="am-section"><h3>Contacto</h3><table class="am-table">'
+    +'<tr><td>Teléfono</td><td>'+(c.tel?cliEsc(c.tel):'<span class="cli-falta">falta</span>')+'</td></tr>'
+    +'<tr><td>Mail</td><td>'+(c.mail?cliEsc(c.mail):'<span class="cli-falta">falta</span>')+'</td></tr>'
+    +'<tr><td>Ciudad</td><td>'+cliEsc(c.ciudad||'—')+'</td></tr>'
+    +(c.revisar?'<tr><td>Revisar</td><td class="cli-falta">'+cliEsc(c.revisar)+'</td></tr>':'')+'</table></div>';
+  h+='<div class="am-section"><h3>Por canal</h3><table class="am-table">'+['LOCAL FISICO','CRM KOMMO','VALE AI'].map(k=>
+    '<tr><td><span class="cli-canal" style="background:'+CLI_CANAL_COLOR[k]+'30;color:'+CLI_CANAL_COLOR[k]+'">'+CLI_CANAL_NOMBRE[k]+'</span></td><td class="td-num">'+fmtARSFull(c.porCanal[k]||0)+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="am-section"><h3>Compras</h3>'+(compras.length?'<table class="am-table"><thead><tr><th>Fecha</th><th>Comprobante</th><th>Canal</th><th>Pago</th><th class="td-num">Monto</th></tr></thead><tbody>'
+    +compras.map(x=>'<tr title="'+cliEsc(x.obs)+'"><td>'+cliEsc(cliFecha(x.fecha))+'</td><td>'+cliEsc(x.tipo+' '+x.numero)+'</td><td>'+cliEsc(CLI_CANAL_NOMBRE[x.canal]||x.canal)+'<br><span style="color:var(--muted2)">'+cliEsc(x.vend)+'</span></td><td>'+cliEsc(x.pago)+'</td><td class="td-num">'+fmtARSFull(x.monto)+(x.obs?' *':'')+'</td></tr>').join('')
+    +'</tbody></table>':'<div class="am-empty">Sin compras en el detalle</div>')+'</div>';
+  document.getElementById('cliModalCuerpo').innerHTML=h;
+  const m=document.getElementById('cliModal');m.classList.add('open');m.setAttribute('aria-hidden','false');
+}
+function cliCerrar(){const m=document.getElementById('cliModal');m.classList.remove('open');m.setAttribute('aria-hidden','true');}
+
+function cliCsv(){
+  const canal=document.getElementById('cliCanal').value;
+  const cab=['Clienta','DNI/CUIT','Teléfono','Mail','Ciudad','Compras','Monto','Ticket','Canal principal','Monto Local físico','Monto CRM Kommo','Monto Vale AI','Primera compra','Última compra','Qué falta','Revisar'];
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const filas=cliFiltradas.map(c=>[c.nombre,c.doc,c.tel,c.mail,c.ciudad,c.compras,Math.round(cliMonto(c,canal)),Math.round(c.ticket),c.canal,
+    Math.round(c.porCanal['LOCAL FISICO']),Math.round(c.porCanal['CRM KOMMO']),Math.round(c.porCanal['VALE AI']),c.primera,c.ultima,c.falta,c.revisar].map(q).join(';'));
+  const blob=new Blob(['\ufeff'+cab.map(q).join(';')+'\n'+filas.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='clientas-mahra.csv';document.body.appendChild(a);a.click();a.remove();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const on=(id,ev,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener(ev,fn);};
+  on('tabCli','click',()=>setVista('cli'));
+  on('btnCliEntrar','click',cliEntrar);
+  on('cliClave','keydown',e=>{if(e.key==='Enter')cliEntrar();});
+  ['cliCanal','cliFalta','cliFrec'].forEach(id=>on(id,'change',()=>{cliMostrar=100;renderClientas();}));
+  on('cliBuscar','input',()=>{cliMostrar=100;renderClientas();});
+  on('btnCliMas','click',()=>{cliMostrar+=200;renderCliTabla();});
+  on('btnCliCsv','click',cliCsv);
+  on('cliModalCerrar','click',cliCerrar);
+  on('cliModalFondo','click',cliCerrar);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')cliCerrar();});
+});
 </script>
 </body>
 </html>
