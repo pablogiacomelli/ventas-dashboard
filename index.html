@@ -123,6 +123,11 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 .am-table .td-num{text-align:right;font-variant-numeric:tabular-nums}
 .am-empty{color:var(--muted2);font-family:var(--font-mono);font-size:11px;text-align:center;padding:14px 0;letter-spacing:.05em}
 .am-row-click{cursor:pointer;transition:background .12s}
+#marcaModal{z-index:590}
+.am-table th.sortable{cursor:pointer;user-select:none}
+.am-table th.sortable:hover{color:var(--accent)}
+.am-table th.sorted{color:var(--accent)}
+.mm-note{font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-top:10px;line-height:1.5}
 .am-row-click:hover td{background:rgba(212,168,83,.06)}
 .ppc-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:2px;font-family:var(--font-mono);letter-spacing:.05em;margin-left:6px;vertical-align:middle}
 .ppc-badge.periodo{background:#8fbe9e25;color:var(--accent4)}
@@ -299,7 +304,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
     </div>
 
     <div class="chart-card">
-      <div class="chart-header"><div><div class="chart-title">Ventas por Marca</div><div class="chart-subtitle">Ranking · total ARS en período</div></div></div>
+      <div class="chart-header"><div><div class="chart-title">Ventas por Marca</div><div class="chart-subtitle" id="marcaSubtitle">Ranking · total ARS en período · clic en la barra para detalle</div></div><div style="display:flex;gap:4px"><button type="button" class="preset-btn active" id="btnMarcaMonto">Monto</button><button type="button" class="preset-btn" id="btnMarcaCant">Cantidad</button></div></div>
       <div class="chart-wrap"><canvas id="marcaChart"></canvas></div>
     </div>
 
@@ -585,6 +590,22 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
       <button class="am-close" id="cliModalCerrar" aria-label="Cerrar">×</button>
     </div>
     <div id="cliModalCuerpo"></div>
+  </div>
+</div>
+
+<div class="article-modal" id="marcaModal" aria-hidden="true">
+  <div class="am-backdrop" id="marcaModalFondo"></div>
+  <div class="am-panel">
+    <div class="am-header">
+      <div><div class="am-eyebrow">Marca</div><h2 class="am-title">MAHRA <em id="marcaModalNombre">—</em></h2></div>
+      <button type="button" class="am-close" id="marcaModalCerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div class="am-kpis" id="marcaModalKpis"></div>
+    <div class="am-section">
+      <h3>Artículos vendidos · clic en un artículo para ver su detalle</h3>
+      <div id="marcaModalTabla"></div>
+      <div class="mm-note" id="marcaModalNota"></div>
+    </div>
   </div>
 </div>
 
@@ -1175,19 +1196,88 @@ function renderMensualChart(ventas){
   });
 }
 
+let marcaMetric='monto';
+try{const mm=localStorage.getItem('mahra-ventas-marca-metric');if(mm==='cant'||mm==='monto')marcaMetric=mm;}catch(e){}
+function setMarcaMetric(m){
+  marcaMetric=m;
+  try{localStorage.setItem('mahra-ventas-marca-metric',m);}catch(e){}
+  document.getElementById('btnMarcaMonto').classList.toggle('active',m==='monto');
+  document.getElementById('btnMarcaCant').classList.toggle('active',m==='cant');
+  document.getElementById('marcaSubtitle').textContent=(m==='cant'?'Ranking · unidades en período':'Ranking · total ARS en período')+' · clic en la barra para detalle';
+  if(rawVentas.length)renderMarcaChart(filterVentas(rawVentas));
+}
 function renderMarcaChart(ventas){
-  const byM={};ventas.forEach(r=>{const m=r.marca||'Sin marca';byM[m]=(byM[m]||0)+parseNum(r.total);});
-  let entries=Object.entries(byM).sort((a,b)=>b[1]-a[1]);
-  if(entries.length>12){const otros=entries.slice(11).reduce((s,e)=>s+e[1],0);entries=entries.slice(0,11);if(otros>0)entries.push(['Otros',otros]);}
-  const labels=entries.map(e=>e[0]);const data=entries.map(e=>e[1]);
+  const byM={};
+  ventas.forEach(r=>{const m=r.marca||'Sin marca';if(!byM[m])byM[m]={monto:0,cant:0};byM[m].monto+=parseNum(r.total);byM[m].cant+=parseNum(r.cantidad);});
+  const key=marcaMetric==='cant'?'cant':'monto';
+  let entries=Object.entries(byM).sort((a,b)=>b[1][key]-a[1][key]);
+  if(entries.length>12){const resto=entries.slice(11);const otros={monto:resto.reduce((s,e)=>s+e[1].monto,0),cant:resto.reduce((s,e)=>s+e[1].cant,0)};entries=entries.slice(0,11);if(otros.monto||otros.cant)entries.push(['Otros',otros]);}
+  const labels=entries.map(e=>e[0]);const data=entries.map(e=>e[1][key]);const det=entries.map(e=>e[1]);
   const colors=['#d4a853','#7ba8cc','#e07060','#8fbe9e','#a78bfa','#fb923c','#38bdf8','#f472b6','#4ade80','#fbbf24','#818cf8','#d4a85380'];
+  const fmtU=n=>Math.round(n).toLocaleString('es-AR');
   if(charts.marca)charts.marca.destroy();
   charts.marca=new Chart(document.getElementById('marcaChart'),{
     type:'bar',
-    data:{labels,datasets:[{label:'Ventas',data,backgroundColor:labels.map((_,i)=>colors[i%colors.length]+'b0'),borderColor:labels.map((_,i)=>colors[i%colors.length]),borderWidth:1}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>' '+fmtARSFull(ctx.parsed.x)}}},scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:v=>fmtARS(v)}},y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#f0ede8',font:{family:'DM Mono',size:11}}}}}
+    data:{labels,datasets:[{label:key==='cant'?'Unidades':'Ventas',data,backgroundColor:labels.map((_,i)=>colors[i%colors.length]+'b0'),borderColor:labels.map((_,i)=>colors[i%colors.length]),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      onClick:(evt,els)=>{if(!els||!els.length)return;const m=labels[els[0].index];if(m&&m!=='Otros')openMarcaModal(m);},
+      onHover:(evt,els)=>{const c=evt.native&&evt.native.target;if(c)c.style.cursor=(els&&els.length&&labels[els[0].index]!=='Otros')?'pointer':'default';},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{
+        label:ctx=>{const d=det[ctx.dataIndex];return[' Monto: '+fmtARSFull(d.monto),' Cantidad: '+fmtU(d.cant)+' u'];},
+        footer:items=>(items.length&&labels[items[0].dataIndex]!=='Otros')?'Clic para ver los artículos':''}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:v=>key==='cant'?fmtU(v):fmtARS(v)},beginAtZero:true},y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#f0ede8',font:{family:'DM Mono',size:11}}}}}
   });
 }
+
+// ====== MODAL MARCA ======
+// Mismo criterio de costo que el modal de artículo y la tabla Top: getCost(sku) por venta,
+// PPC u. = costo PPC / unidades vendidas, Margen % = (ingreso − costo PPC) / ingreso.
+let marcaModalActual=null,marcaSort={col:'total',dir:-1};
+function openMarcaModal(marca){
+  if(!marca)return;marcaModalActual=marca;
+  const ventas=filterVentas(rawVentas).filter(r=>(r.marca||'Sin marca')===marca);
+  const byArt={};let ing=0,cos=0,qty=0,sinC=0;
+  ventas.forEach(r=>{
+    const a=r.articulo||r.sku||'Sin artículo';
+    if(!byArt[a])byArt[a]={qty:0,total:0,costo:0,sinCosto:0};
+    const cant=parseNum(r.cantidad),tot=parseNum(r.total),c=getCost(r.sku);
+    byArt[a].qty+=cant;byArt[a].total+=tot;ing+=tot;qty+=cant;
+    if(c.value!=null){byArt[a].costo+=c.value*cant;cos+=c.value*cant;}else{byArt[a].sinCosto+=cant;sinC+=cant;}
+  });
+  marcaModalFilas=Object.entries(byArt).map(([art,d])=>({art,qty:d.qty,total:d.total,ppc:d.qty>0?d.costo/d.qty:null,margen:(d.total>0&&d.sinCosto<d.qty)?(d.total-d.costo)/d.total*100:null,sinCosto:d.sinCosto}));
+  const margen=ing>0?((ing-cos)/ing*100).toFixed(1)+'%':'—';
+  const cob=qty>0?((qty-sinC)/qty*100).toFixed(0)+'%':'—';
+  document.getElementById('marcaModalNombre').textContent=marca;
+  document.getElementById('marcaModalKpis').innerHTML=`
+    <div class="am-kpi"><div class="am-kpi-label">Vendido</div><div class="am-kpi-value">${Math.round(qty).toLocaleString('es-AR')}</div><div class="am-kpi-sub">unidades · período</div></div>
+    <div class="am-kpi"><div class="am-kpi-label">Ingreso</div><div class="am-kpi-value">$${Math.round(ing).toLocaleString('es-AR')}</div><div class="am-kpi-sub">${marcaModalFilas.length} artículos</div></div>
+    <div class="am-kpi"><div class="am-kpi-label">Margen bruto</div><div class="am-kpi-value">${margen}</div><div class="am-kpi-sub">cobertura PPC ${cob}</div></div>`;
+  marcaSort={col:'total',dir:-1};
+  pintarMarcaTabla();
+  document.getElementById('marcaModalNota').textContent=sinC>0?`* ${Math.round(sinC).toLocaleString('es-AR')} u de esta marca no tienen costo cargado: no suman costo, así que el margen de esos artículos queda inflado.`:'';
+  document.getElementById('marcaModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+let marcaModalFilas=[];
+function pintarMarcaTabla(){
+  const {col,dir}=marcaSort;
+  const filas=[...marcaModalFilas].sort((a,b)=>{const x=a[col],y=b[col];if(col==='art')return dir*String(x).localeCompare(String(y));return dir*((x==null?-Infinity:x)-(y==null?-Infinity:y));});
+  const th=(c,t,num)=>`<th class="sortable${num?' td-num':''}${col===c?' sorted':''}" data-mmsort="${c}">${t}${col===c?(dir<0?' ▾':' ▴'):''}</th>`;
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  document.getElementById('marcaModalTabla').innerHTML=filas.length?`<table class="am-table"><thead><tr>${th('art','Artículo')}${th('qty','Cant.',1)}${th('total','Ingreso',1)}${th('ppc','PPC u.',1)}${th('margen','Margen',1)}</tr></thead><tbody>${filas.map(f=>{
+    const mc=f.margen==null?'var(--muted)':f.margen>=40?'var(--accent4)':f.margen>=20?'var(--accent)':'var(--accent3)';
+    const ast=f.sinCosto>0?'<span title="Hay unidades sin costo cargado" style="color:var(--accent3)">*</span>':'';
+    return `<tr class="am-row-click" data-article="${esc(f.art)}"><td style="font-family:var(--font-display);font-weight:600">${esc(f.art)}${ast}</td><td class="td-num">${Math.round(f.qty).toLocaleString('es-AR')}</td><td class="td-num">$${Math.round(f.total).toLocaleString('es-AR')}</td><td class="td-num">${f.ppc!=null&&f.ppc>0?'$'+Math.round(f.ppc).toLocaleString('es-AR'):'—'}</td><td class="td-num" style="color:${mc}">${f.margen!=null?f.margen.toFixed(0)+'%':'—'}</td></tr>`;}).join('')}</tbody></table>`:'<p class="am-empty">Sin ventas de esta marca en el período</p>';
+}
+function closeMarcaModal(){document.getElementById('marcaModal').classList.remove('open');marcaModalActual=null;if(!document.getElementById('articleModal').classList.contains('open'))document.body.style.overflow='';}
+document.addEventListener('click',e=>{const h=e.target.closest('[data-mmsort]');if(!h)return;const c=h.dataset.mmsort;marcaSort=marcaSort.col===c?{col:c,dir:-marcaSort.dir}:{col:c,dir:c==='art'?1:-1};pintarMarcaTabla();});
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btnMarcaMonto').addEventListener('click',()=>setMarcaMetric('monto'));
+  document.getElementById('btnMarcaCant').addEventListener('click',()=>setMarcaMetric('cant'));
+  document.getElementById('marcaModalCerrar').addEventListener('click',closeMarcaModal);
+  document.getElementById('marcaModalFondo').addEventListener('click',closeMarcaModal);
+  setMarcaMetric(marcaMetric);
+});
 
 function renderMargenChart(ventas){
   const byM={};
@@ -1296,8 +1386,8 @@ function openArticleModal(article){
   document.getElementById('articleModal').classList.add('open');
   document.body.style.overflow='hidden';
 }
-function closeArticleModal(){document.getElementById('articleModal').classList.remove('open');document.body.style.overflow='';if(charts.modalMonthly){charts.modalMonthly.destroy();delete charts.modalMonthly;}}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeArticleModal();});
+function closeArticleModal(){document.getElementById('articleModal').classList.remove('open');if(!document.getElementById('marcaModal').classList.contains('open'))document.body.style.overflow='';if(charts.modalMonthly){charts.modalMonthly.destroy();delete charts.modalMonthly;}}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.getElementById('articleModal').classList.contains('open'))closeArticleModal();else if(document.getElementById('marcaModal').classList.contains('open'))closeMarcaModal();});
 document.addEventListener('click',e=>{const t=e.target.closest('[data-article]');if(t&&t.dataset.article)openArticleModal(t.dataset.article);});
 
 // ====== AI ANALYSIS ======
