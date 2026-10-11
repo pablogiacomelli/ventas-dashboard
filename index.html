@@ -155,6 +155,11 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 .ms-item:hover{background:var(--surface2)}
 .ms-item input{cursor:pointer;accent-color:#d4a853}
 .ms-empty{color:var(--muted2);font-size:11px;font-family:var(--font-mono);padding:6px}
+.ms-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0}
+.ms-grid .ms-item{padding:4px 3px;gap:4px}
+#msDia .ms-panel{min-width:300px}
+.ms-actions{flex-wrap:wrap}
+.preset-btn:disabled{opacity:.35;cursor:default;border-color:var(--border2)!important;color:var(--muted)!important;background:transparent!important}
 /* ===== CLIENTAS ===== */
 .cli-login{max-width:380px;margin:40px auto;background:var(--surface);border:1px solid var(--border2);padding:28px}
 .cli-login h2{font-family:var(--font-display);font-weight:300;font-size:20px;margin-bottom:6px}
@@ -358,28 +363,38 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
 <main id="vistaCmp" style="display:none">
   <div class="chart-card chart-full" style="margin-bottom:18px">
     <div class="chart-header" style="margin-bottom:12px">
-      <div><div class="chart-title">Comparativa</div><div class="chart-subtitle">Eje X: meses · Una línea por cada año o temporada · Costeo con PPC histórico a la fecha de cada venta</div></div>
+      <div><div class="chart-title">Comparativa</div><div class="chart-subtitle" id="cmpSub">Costeo con PPC histórico a la fecha de cada venta</div></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="preset-btn" onclick="cmpAtajo('mesHoy')" title="Mes en curso del día 1 a hoy, contra el mismo tramo de los años anteriores">Este mes a hoy vs años anteriores</button>
+        <button class="preset-btn" onclick="cmpAtajo('mesAnt')" title="Mes en curso contra el mes anterior, los dos del día 1 al día de hoy">Este mes vs el anterior, a la misma fecha</button>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <span class="range-label">Comparar por</span>
       <div style="display:flex;gap:4px">
         <button class="preset-btn active" id="btnCmpAnio" onclick="setCmpDim('anio')">Año</button>
+        <button class="preset-btn" id="btnCmpMesD" onclick="setCmpDim('mes')">Mes</button>
         <button class="preset-btn" id="btnCmpTemp" onclick="setCmpDim('temporada')">Temporada</button>
       </div>
-      <span class="range-label" style="margin-left:8px">Años</span>
+      <span class="range-label" style="margin-left:8px">Escala</span>
+      <div style="display:flex;gap:4px">
+        <button class="preset-btn" id="btnEscDia" onclick="setCmpEsc('dia')">Días</button>
+        <button class="preset-btn" id="btnEscSem" onclick="setCmpEsc('semana')">Semanas</button>
+        <button class="preset-btn active" id="btnEscMes" onclick="setCmpEsc('mes')">Meses</button>
+      </div>
+      <span class="range-label" style="margin-left:8px">Ver</span>
+      <div style="display:flex;gap:4px">
+        <button class="preset-btn active" id="btnAcumNo" onclick="setCmpAcum(false)">Por período</button>
+        <button class="preset-btn" id="btnAcumSi" onclick="setCmpAcum(true)">Acumulado</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="range-label">Años</span>
       <div class="ms" id="msAnio">
         <button type="button" class="ms-btn" onclick="cmsToggle('Anio')"><span id="msAnioLbl">Todos</span> ▾</button>
         <div class="ms-panel">
           <div class="ms-actions"><span onclick="cmsAll('Anio',true)">Todos</span><span onclick="cmsAll('Anio',false)">Ninguno</span></div>
           <div id="msAnioList"></div>
-        </div>
-      </div>
-      <span class="range-label">Temporadas</span>
-      <div class="ms" id="msTemp">
-        <button type="button" class="ms-btn" onclick="cmsToggle('Temp')"><span id="msTempLbl">Todas</span> ▾</button>
-        <div class="ms-panel">
-          <div class="ms-actions"><span onclick="cmsAll('Temp',true)">Todas</span><span onclick="cmsAll('Temp',false)">Ninguna</span></div>
-          <div id="msTempList"></div>
         </div>
       </div>
       <span class="range-label">Meses</span>
@@ -388,6 +403,22 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
         <div class="ms-panel">
           <div class="ms-actions"><span onclick="cmsAll('Mes',true)">Todos</span><span onclick="cmsAll('Mes',false)">Ninguno</span></div>
           <div id="msMesList"></div>
+        </div>
+      </div>
+      <span class="range-label">Días</span>
+      <div class="ms" id="msDia">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Dia')"><span id="msDiaLbl">Todos</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Dia',true)">Todos</span><span onclick="cmsAll('Dia',false)">Ninguno</span><span onclick="cmsDiasHastaHoy()">1 a hoy</span></div>
+          <div id="msDiaList" class="ms-grid"></div>
+        </div>
+      </div>
+      <span class="range-label">Temporadas</span>
+      <div class="ms" id="msTemp">
+        <button type="button" class="ms-btn" onclick="cmsToggle('Temp')"><span id="msTempLbl">Todas</span> ▾</button>
+        <div class="ms-panel">
+          <div class="ms-actions"><span onclick="cmsAll('Temp',true)">Todas</span><span onclick="cmsAll('Temp',false)">Ninguna</span></div>
+          <div id="msTempList"></div>
         </div>
       </div>
       <span class="range-label">Marcas</span>
@@ -402,20 +433,21 @@ footer{padding:24px 40px;border-top:1px solid var(--border);font-size:10px;color
       <select class="date-input" id="cmpCanal" onchange="renderCmp()"><option value="">Todos</option><option value="LOCAL">Local</option><option value="TIENDA">Tienda</option><option value="KOMMO">Kommo</option></select>
     </div>
     <div id="cmpResumen" class="cmp-note" style="padding-left:0;padding-right:0"></div>
+    <div style="overflow-x:auto;margin-top:6px"><table class="data-table" id="cmpTabla" style="margin-top:6px"></table></div>
   </div>
 
   <div class="chart-card chart-full" style="margin-bottom:18px">
-    <div class="chart-header"><div><div class="chart-title">Monto de Venta</div><div class="chart-subtitle">ARS facturados por mes</div></div><div class="legend" id="cmpLeg1"></div></div>
+    <div class="chart-header"><div><div class="chart-title">Monto de Venta</div><div class="chart-subtitle" id="cmpSub1">ARS facturados por mes</div></div><div class="legend" id="cmpLeg1"></div></div>
     <div class="chart-wrap-tall"><canvas id="cmpMonto"></canvas></div>
   </div>
 
   <div class="chart-card chart-full" style="margin-bottom:18px">
-    <div class="chart-header"><div><div class="chart-title">Cantidad de Venta</div><div class="chart-subtitle">Unidades vendidas por mes</div></div><div class="legend" id="cmpLeg2"></div></div>
+    <div class="chart-header"><div><div class="chart-title">Cantidad de Venta</div><div class="chart-subtitle" id="cmpSub2">Unidades vendidas por mes</div></div><div class="legend" id="cmpLeg2"></div></div>
     <div class="chart-wrap-tall"><canvas id="cmpCant"></canvas></div>
   </div>
 
   <div class="chart-card chart-full" style="margin-bottom:18px">
-    <div class="chart-header"><div><div class="chart-title">Margen Bruto</div><div class="chart-subtitle">(Ingresos − Costo de mercadería) / Ingresos · calculado sobre los totales del mes, no como promedio de porcentajes</div></div><div class="legend" id="cmpLeg3"></div></div>
+    <div class="chart-header"><div><div class="chart-title">Margen Bruto</div><div class="chart-subtitle" id="cmpSub3">(Ingresos − Costo de mercadería) / Ingresos · calculado sobre los totales de cada tramo, no como promedio de porcentajes</div></div><div class="legend" id="cmpLeg3"></div></div>
     <div class="chart-wrap-tall"><canvas id="cmpMargen"></canvas></div>
   </div>
 </main>
@@ -842,9 +874,87 @@ function costoHistorico(sku,fecha){
 
 const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const PALETA=['#d4a853','#7ba8cc','#8fbe9e','#a78bfa','#e07060','#e8c547','#f0ede8','#5a9e8f','#c98bb9','#9a9690'];
-let cmpDim='anio';
-const CMS={Anio:new Set(),Temp:new Set(),Mes:new Set(),Marca:new Set()};
-const CMSOPT={Anio:[],Temp:[],Mes:[],Marca:[]};
+// ===== Motor de comparativas (mismo código en Ventas y en Compras) =====
+// Dimensión (qué es cada línea): 'anio' | 'mes' (cada línea es un mes de un año) | 'temporada'.
+// Escala (eje X): 'dia' | 'semana' | 'mes'. Semana = tramo fijo de días del mes (S1 1–7, S2 8–14,
+// S3 15–21, S4 22–28, S5 29–31) para que los años se comparen día contra día.
+const CMP_MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const CMP_SEM_RANGO=['','1–7','8–14','15–21','22–28','29–31'];
+function cmpSem(d){return Math.min(5,Math.floor((d-1)/7)+1);}
+function cmpRangos(nums){
+  const a=nums.map(Number).sort((x,y)=>x-y),out=[];let i=0;
+  while(i<a.length){let j=i;while(j+1<a.length&&a[j+1]===a[j]+1)j++;out.push(j>i?a[i]+'–'+a[j]:String(a[i]));i=j+1;}
+  return out.join(', ');
+}
+function cmpEje(dim,esc,meses,dias){
+  const sems=[...new Set(dias.map(cmpSem))].sort((a,b)=>a-b);
+  if(dim==='mes'){
+    if(esc==='semana')return{keys:sems.map(String),labels:sems.map(x=>'S'+x+' ('+CMP_SEM_RANGO[x]+')'),keyOf:(m,d)=>String(cmpSem(d))};
+    return{keys:dias.map(String),labels:dias.map(String),keyOf:(m,d)=>String(d)};
+  }
+  if(esc==='mes')return{keys:meses.map(String),labels:meses.map(m=>CMP_MESES[m]),keyOf:(m,d)=>String(m)};
+  const keys=[],labels=[];
+  if(esc==='semana'){
+    meses.forEach(m=>sems.forEach(x=>{keys.push(m+'-'+x);labels.push(CMP_MESES[m]+' S'+x);}));
+    return{keys,labels,keyOf:(m,d)=>m+'-'+cmpSem(d)};
+  }
+  meses.forEach(m=>{const ult=new Date(2024,m+1,0).getDate();dias.forEach(d=>{if(d<=ult){keys.push(m+'-'+d);labels.push(String(d).padStart(2,'0')+' '+CMP_MESES[m]);}});});
+  return{keys,labels,keyOf:(m,d)=>m+'-'+d};
+}
+function cmpSerieKey(dim,d,temp){
+  if(dim==='anio')return String(d.getFullYear());
+  if(dim==='mes')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  return temp||'(sin temp.)';
+}
+function cmpSerieLbl(dim,s){if(dim!=='mes')return s;const p=s.split('-');return CMP_MESES[+p[1]-1]+' '+p[0];}
+// Fecha del primer día elegido dentro del tramo, para no dibujar el futuro. null = no aplica (temporadas).
+function cmpFechaTramo(dim,esc,serie,key,dias){
+  let y,m,dd;
+  if(dim==='anio')y=+serie;
+  else if(dim==='mes'){const p=serie.split('-');y=+p[0];m=+p[1]-1;}
+  else return null;
+  if(dim==='mes')dd=(esc==='semana')?dias.find(x=>cmpSem(x)===+key):+key;
+  else if(esc==='mes'){m=+key;dd=dias[0];}
+  else{const p=key.split('-');m=+p[0];dd=(esc==='semana')?dias.find(x=>cmpSem(x)===+p[1]):+p[1];}
+  if(dd==null)return null;
+  return new Date(y,m,dd);
+}
+// Valores de una serie sobre el eje: 0 donde no hubo movimiento, null en fechas futuras y antes
+// de que existan datos (inicio = primera fecha de toda la base). acum = suma corrida.
+// ratio = {num,den,f} para porcentajes (acumula num y den).
+function cmpValores(buckets,keys,fechaFn,acum,campo,ratio,inicio){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  let a=0,an=0,ad=0;
+  return keys.map(k=>{
+    const b=buckets[k],f=fechaFn(k);
+    if(f&&f>hoy)return null;
+    if(f&&inicio&&f<inicio&&!b)return null;
+    if(ratio){
+      if(acum){if(b){an+=b[ratio.num];ad+=b[ratio.den];}return ad>0?ratio.f(an,ad):null;}
+      return b&&b[ratio.den]>0?ratio.f(b[ratio.num],b[ratio.den]):null;
+    }
+    const v=b?b[campo]:0;
+    if(acum){a+=v;return a;}
+    return v;
+  });
+}
+function cmpDelta(act,ant){
+  if(ant==null||!isFinite(ant)||Math.abs(ant)<1e-9)return '<span style="color:var(--muted2)">—</span>';
+  const p=(act-ant)/Math.abs(ant)*100;
+  return '<span style="color:'+(p>=0?'#8fbe9e':'#e07060')+'">'+(p>=0?'+':'')+p.toLocaleString('es-AR',{maximumFractionDigits:1})+'%</span>';
+}
+function cmpTextos(dim,esc,acum){
+  const ejeTxt=dim==='mes'?(esc==='semana'?'semana del mes':'día del mes'):({dia:'días',semana:'semanas',mes:'meses'}[esc]);
+  const dimTxt={anio:'Una línea por año',mes:'Una línea por mes',temporada:'Una línea por temporada'}[dim];
+  return{
+    sub:dimTxt+' · eje X: '+ejeTxt+(acum?' · acumulado':'')+(esc==='semana'?' · S1 = días 1–7, S2 = 8–14, S3 = 15–21, S4 = 22–28, S5 = 29–31':''),
+    por:'por '+({dia:'día',semana:'semana',mes:'mes'}[esc])+(acum?' · acumulado':'')
+  };
+}
+
+let cmpDim='anio',cmpEsc='mes',cmpAcum=false;
+const CMS={Anio:new Set(),Temp:new Set(),Mes:new Set(),Dia:new Set(),Marca:new Set()};
+const CMSOPT={Anio:[],Temp:[],Mes:[],Dia:[],Marca:[]};
 
 function cmsToggle(k){
   const el=document.getElementById('ms'+k);const ab=el.classList.contains('open');
@@ -862,9 +972,15 @@ function cmsRender(k){
 function cmsAfter(k){if(String(k).charAt(0)==='V')renderVend();else renderCmp();}
 function cmsChange(k,cb){if(cb.checked)CMS[k].add(cb.value);else CMS[k].delete(cb.value);cmsLabel(k);cmsAfter(k);}
 function cmsAll(k,on){CMS[k].clear();if(on)(CMSOPT[k]||[]).forEach(o=>CMS[k].add(String((typeof o==='object')?o.v:o)));cmsRender(k);cmsAfter(k);}
+function cmsDiasHastaHoy(){const h=new Date().getDate();CMS.Dia.clear();for(let d=1;d<=h;d++)CMS.Dia.add(String(d));cmsRender('Dia');renderCmp();}
 function cmsLabel(k){
   const n=CMS[k].size,tot=(CMSOPT[k]||[]).length;const todas=(n===0||n===tot);
-  document.getElementById('ms'+k+'Lbl').textContent=todas?(k==='Anio'||k==='Mes'?'Todos':'Todas'):(n===1?[...CMS[k]][0]:n+' sel.');
+  let lbl;
+  if(todas)lbl=['Anio','Mes','Dia','VAnio','VMes'].includes(k)?'Todos':'Todas';
+  else if(k==='Dia'){lbl=cmpRangos([...CMS[k]]);if(lbl.length>14)lbl=n+' días';}
+  else if(n===1){const v=[...CMS[k]][0];const o=(CMSOPT[k]||[]).find(o=>String((typeof o==='object')?o.v:o)===v);lbl=(o&&typeof o==='object')?o.lab:v;}
+  else lbl=n+' sel.';
+  document.getElementById('ms'+k+'Lbl').textContent=lbl;
   document.getElementById('ms'+k).classList.toggle('sel',!todas);
 }
 function cmsSel(k){const n=CMS[k].size,tot=(CMSOPT[k]||[]).length;return(n===0||n===tot)?[]:[...CMS[k]];}
@@ -881,15 +997,32 @@ function poblarCmp(){
   CMSOPT.Temp=[...temps].sort().reverse();
   CMSOPT.Marca=[...marcas].sort();
   CMSOPT.Mes=MESES.map((m,i)=>({v:i,lab:m}));
-  ['Anio','Temp','Mes','Marca'].forEach(k=>{
+  CMSOPT.Dia=Array.from({length:31},(_,i)=>({v:i+1,lab:i+1}));
+  ['Anio','Temp','Mes','Dia','Marca'].forEach(k=>{
     [...CMS[k]].forEach(v=>{if(!CMSOPT[k].some(o=>String((typeof o==='object')?o.v:o)===v))CMS[k].delete(v);});
     cmsRender(k);
   });
 }
-function setCmpDim(d){
-  cmpDim=d;
-  document.getElementById('btnCmpAnio').classList.toggle('active',d==='anio');
-  document.getElementById('btnCmpTemp').classList.toggle('active',d==='temporada');
+function syncCmpBtns(){
+  const on=(id,v)=>{const b=document.getElementById(id);if(b)b.classList.toggle('active',v);};
+  on('btnCmpAnio',cmpDim==='anio');on('btnCmpMesD',cmpDim==='mes');on('btnCmpTemp',cmpDim==='temporada');
+  on('btnEscDia',cmpEsc==='dia');on('btnEscSem',cmpEsc==='semana');on('btnEscMes',cmpEsc==='mes');
+  on('btnAcumNo',!cmpAcum);on('btnAcumSi',cmpAcum);
+  const bm=document.getElementById('btnEscMes');
+  bm.disabled=(cmpDim==='mes');bm.title=(cmpDim==='mes')?'Comparando por mes, el eje es el día o la semana dentro del mes':'';
+}
+function setCmpDim(d){cmpDim=d;if(d==='mes'&&cmpEsc==='mes')cmpEsc='dia';renderCmp();}
+function setCmpEsc(e){if(cmpDim==='mes'&&e==='mes')return;cmpEsc=e;renderCmp();}
+function setCmpAcum(v){cmpAcum=!!v;renderCmp();}
+// Atajos: "cómo va el mes hasta hoy" contra el mismo tramo de otros años / del mes anterior
+function cmpAtajo(t){
+  const h=new Date(),m=h.getMonth(),y=h.getFullYear();
+  CMS.Dia.clear();for(let d=1;d<=h.getDate();d++)CMS.Dia.add(String(d));
+  CMS.Mes.clear();CMS.Anio.clear();CMS.Mes.add(String(m));
+  if(t==='mesHoy'){cmpDim='anio';}
+  else{CMS.Mes.add(String((m+11)%12));CMS.Anio.add(String(y));if(m===0)CMS.Anio.add(String(y-1));cmpDim='mes';}
+  cmpEsc='dia';cmpAcum=true;
+  ['Anio','Mes','Dia'].forEach(cmsRender);
   renderCmp();
 }
 function setVista(v){
@@ -907,62 +1040,84 @@ function setVista(v){
 function renderCmp(){
   if(!rawVentas.length)return;
   buildBIMap();buildCostosMap();
-  const fA=cmsSel('Anio'),fT=cmsSel('Temp'),fM=cmsSel('Mes'),fMar=cmsSel('Marca');
+  syncCmpBtns();
+  const fA=cmsSel('Anio'),fT=cmsSel('Temp'),fM=cmsSel('Mes'),fD=cmsSel('Dia'),fMar=cmsSel('Marca');
   const canal=document.getElementById('cmpCanal').value;
-  // acumuladores: serie -> mes -> {monto, cant, ing_con_costo, costo}
-  const acc={};
+  const meses=(fM.length?fM.map(Number):MESES.map((_,i)=>i)).sort((a,b)=>a-b);
+  const dias=(fD.length?fD.map(Number):Array.from({length:31},(_,i)=>i+1)).sort((a,b)=>a-b);
+  const eje=cmpEje(cmpDim,cmpEsc,meses,dias);
+  // acumuladores: serie -> tramo del eje -> {monto, cant, ing (con costo), mg (margen $)}
+  const acc={},diasCon={};
   let sinCostoU=0,totU=0;
   rawVentas.forEach(r=>{
     const d=parseDate(r.fecha);if(!d)return;
-    const anio=String(d.getFullYear()),mes=d.getMonth();
+    const anio=String(d.getFullYear()),mes=d.getMonth(),dia=d.getDate();
     if(fA.length&&fA.indexOf(anio)<0)return;
     if(fT.length&&fT.indexOf(r.temporada)<0)return;
     if(fM.length&&fM.indexOf(String(mes))<0)return;
+    if(fD.length&&fD.indexOf(String(dia))<0)return;
     if(fMar.length&&fMar.indexOf(r.marca)<0)return;
     if(canal==='LOCAL'&&canalDe(r)!=='local')return;
     if(canal==='TIENDA'&&canalDe(r)!=='tienda')return;
     if(canal==='KOMMO'&&canalDe(r)!=='kommo')return;
-    const serie=(cmpDim==='anio')?anio:(r.temporada||'(sin temp.)');
-    if(!acc[serie])acc[serie]={};
-    if(!acc[serie][mes])acc[serie][mes]={monto:0,cant:0,ing:0,costo:0};
-    const b=acc[serie][mes];
+    const serie=cmpSerieKey(cmpDim,d,r.temporada),k=eje.keyOf(mes,dia);
+    if(!acc[serie]){acc[serie]={};diasCon[serie]=new Set();}
+    const b=acc[serie][k]||(acc[serie][k]={monto:0,cant:0,ing:0,mg:0});
     const cant=parseNum(r.cantidad),tot=parseNum(r.total);
     b.monto+=tot;b.cant+=cant;totU+=cant;
+    diasCon[serie].add(d.getTime());
     const cu=costoHistorico(r.sku,d);
-    if(cu!=null){b.ing+=tot;b.costo+=cu*cant;}
+    if(cu!=null){b.ing+=tot;b.mg+=tot-cu*cant;}
     else sinCostoU+=cant;
   });
   const series=Object.keys(acc).sort();
-  const ds=(campo,esMargen)=>series.map((s,i)=>{
+  let inicio=null;rawVentas.forEach(r=>{const d=parseDate(r.fecha);if(d&&(!inicio||d<inicio))inicio=d;});
+  const fechaFn=s=>k=>cmpFechaTramo(cmpDim,cmpEsc,s,k,dias);
+  const RATIO={num:'mg',den:'ing',f:(n,d)=>Math.round(n/d*1000)/10};
+  const unoSolo=eje.keys.length<=1,muchos=eje.keys.length>45;
+  const ds=(campo,ratio)=>series.map((s,i)=>{
     const col=PALETA[i%PALETA.length];
-    return{label:s,borderColor:col,backgroundColor:col+'20',tension:.35,fill:false,pointRadius:3,borderWidth:2,spanGaps:true,
-      data:MESES.map((_,m)=>{
-        const b=acc[s][m];if(!b)return null;
-        if(esMargen)return b.ing>0?Math.round(((b.ing-b.costo)/b.ing*1000))/10:null;
-        return b[campo]||0;
-      })};
+    return{label:cmpSerieLbl(cmpDim,s),borderColor:col,backgroundColor:unoSolo?col:col+'20',tension:.3,fill:false,pointRadius:muchos?0:3,pointHoverRadius:4,borderWidth:2,spanGaps:true,
+      data:cmpValores(acc[s],eje.keys,fechaFn(s),cmpAcum,campo,ratio,inicio)};
   });
-  const leyenda=el=>{document.getElementById(el).innerHTML=series.map((s,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETA[i%PALETA.length]}"></div>${s}</div>`).join('');};
+  const leyenda=el=>{document.getElementById(el).innerHTML=series.map((s,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETA[i%PALETA.length]}"></div>${cmpSerieLbl(cmpDim,s)}</div>`).join('');};
   ['cmpLeg1','cmpLeg2','cmpLeg3'].forEach(leyenda);
+  const tx=cmpTextos(cmpDim,cmpEsc,cmpAcum);
+  document.getElementById('cmpSub').textContent=tx.sub+' · Costeo con PPC histórico a la fecha de cada venta';
+  document.getElementById('cmpSub1').textContent='ARS facturados '+tx.por;
+  document.getElementById('cmpSub2').textContent='Unidades vendidas '+tx.por;
+  document.getElementById('cmpSub3').textContent='(Ingresos − Costo de mercadería) / Ingresos '+tx.por+' · sobre los totales de cada tramo, no como promedio de porcentajes';
   const fmtU=n=>Math.round(n).toLocaleString('es-AR');
   function pinta(id,key,datasets,fmtTip,fmtEje,pct){
     if(charts[key])charts[key].destroy();
     charts[key]=new Chart(document.getElementById(id),{
-      type:'line',data:{labels:MESES,datasets},
+      type:unoSolo?'bar':'line',data:{labels:eje.labels,datasets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtTip(ctx.parsed.y)}`}}},
-        scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10}}},
+        scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},autoSkip:true,maxRotation:0}},
                 y:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},callback:fmtEje},beginAtZero:!pct}}}
     });
   }
-  pinta('cmpMonto','cmpMonto',ds('monto',false),v=>fmtARSFull(v),v=>fmtARS(v),false);
-  pinta('cmpCant','cmpCant',ds('cant',false),v=>fmtU(v)+' u',v=>fmtU(v),false);
-  pinta('cmpMargen','cmpMargen',ds(null,true),v=>v.toFixed(1)+'%',v=>v+'%',true);
+  pinta('cmpMonto','cmpMonto',ds('monto'),v=>fmtARSFull(v),v=>fmtARS(v),false);
+  pinta('cmpCant','cmpCant',ds('cant'),v=>fmtU(v)+' u',v=>fmtU(v),false);
+  pinta('cmpMargen','cmpMargen',ds(null,RATIO),v=>v.toFixed(1)+'%',v=>v+'%',true);
+  // tabla resumen por serie (totales del recorte) con variación contra la serie anterior
+  const filas=series.map(s=>{let monto=0,cant=0,ing=0,mg=0;Object.values(acc[s]).forEach(b=>{monto+=b.monto;cant+=b.cant;ing+=b.ing;mg+=b.mg;});
+    return{s,monto,cant,mgPct:ing>0?mg/ing*100:null,dias:diasCon[s].size};});
+  const conDelta=cmpDim!=='temporada';
+  document.getElementById('cmpTabla').innerHTML=filas.length?
+    '<thead><tr><th>'+({anio:'Año',mes:'Mes',temporada:'Temporada'}[cmpDim])+'</th><th class="td-num">Monto</th><th class="td-num">Unidades</th><th class="td-num">Ticket prom.</th><th class="td-num">Margen</th><th class="td-num">Días con ventas</th>'+(conDelta?'<th class="td-num">Δ monto</th><th class="td-num">Δ unidades</th>':'')+'</tr></thead><tbody>'+
+    filas.map((f,i)=>({f,ant:i>0?filas[i-1]:null})).reverse().map(({f,ant},j)=>{
+      const col=PALETA[series.indexOf(f.s)%PALETA.length];
+      return '<tr><td><span class="legend-dot" style="display:inline-block;background:'+col+';margin-right:7px"></span>'+cmpSerieLbl(cmpDim,f.s)+'</td><td class="td-num">'+fmtARSFull(f.monto)+'</td><td class="td-num">'+fmtU(f.cant)+'</td><td class="td-num">'+(f.cant?fmtARSFull(f.monto/f.cant):'—')+'</td><td class="td-num">'+(f.mgPct==null?'—':f.mgPct.toFixed(1)+'%')+'</td><td class="td-num">'+f.dias+'</td>'+
+        (conDelta?'<td class="td-num">'+(ant?cmpDelta(f.monto,ant.monto):'—')+'</td><td class="td-num">'+(ant?cmpDelta(f.cant,ant.cant):'—')+'</td>':'')+'</tr>';
+    }).join('')+'</tbody>':'<tbody><tr><td class="empty-state">Sin ventas con esos filtros</td></tr></tbody>';
   // resumen honesto de cobertura
   const cob=totU>0?((totU-sinCostoU)/totU*100):100;
   document.getElementById('cmpResumen').innerHTML=
     `${series.length} serie(s) · ${fmtU(totU)} u en el recorte · cobertura de costeo <b style="color:${cob>=95?'#8fbe9e':cob>=80?'#e8c547':'#e07060'}">${cob.toFixed(1)}%</b>`+
-    (sinCostoU>0?` — ${fmtU(sinCostoU)} u sin costo quedan FUERA del cálculo de margen (pero sí cuentan en monto y cantidad).`:'');
+    (sinCostoU>0?` — ${fmtU(sinCostoU)} u sin costo quedan FUERA del cálculo de margen (pero sí cuentan en monto y cantidad).`:'')+
+    (conDelta&&series.length>1?' · Δ = variación contra la fila de abajo (la serie anterior).':'');
 }
 
 // ====== PPC ENGINE ======
