@@ -1077,7 +1077,7 @@ function renderCmp(){
   const unoSolo=eje.keys.length<=1,muchos=eje.keys.length>45;
   const ds=(campo,ratio)=>series.map((s,i)=>{
     const col=PALETA[i%PALETA.length];
-    return{label:cmpSerieLbl(cmpDim,s),borderColor:col,backgroundColor:unoSolo?col:col+'20',tension:.3,fill:false,pointRadius:muchos?0:3,pointHoverRadius:4,borderWidth:2,spanGaps:true,
+    return{label:cmpSerieLbl(cmpDim,s),borderColor:col,backgroundColor:unoSolo?col:col+'20',tension:.3,fill:false,pointRadius:unoSolo?6:(muchos?0:3),pointHoverRadius:4,borderWidth:2,spanGaps:true,
       data:cmpValores(acc[s],eje.keys,fechaFn(s),cmpAcum,campo,ratio,inicio)};
   });
   const leyenda=el=>{document.getElementById(el).innerHTML=series.map((s,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETA[i%PALETA.length]}"></div>${cmpSerieLbl(cmpDim,s)}</div>`).join('');};
@@ -1091,7 +1091,7 @@ function renderCmp(){
   function pinta(id,key,datasets,fmtTip,fmtEje,pct){
     if(charts[key])charts[key].destroy();
     charts[key]=new Chart(document.getElementById(id),{
-      type:unoSolo?'bar':'line',data:{labels:eje.labels,datasets},
+      type:'line',data:{labels:eje.labels,datasets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false},tooltip:{backgroundColor:'#171714',borderColor:'rgba(255,255,255,.12)',borderWidth:1,titleColor:'#f0ede8',bodyColor:'#9a9690',callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtTip(ctx.parsed.y)}`}}},
         scales:{x:{grid:{color:'rgba(255,255,255,.03)'},ticks:{color:'#5a5750',font:{family:'DM Mono',size:10},autoSkip:true,maxRotation:0}},
